@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.apache.commons.compress.utils.BoundedInputStream;
 
 /** A {@link Blob} that holds a {@link Path}. */
 class FileBlob implements Blob {
@@ -38,5 +39,33 @@ class FileBlob implements Blob {
     try (InputStream fileIn = new BufferedInputStream(Files.newInputStream(file))) {
       return Digests.computeDigest(fileIn, outputStream);
     }
+  }
+
+  @Override
+  public long length() throws IOException {
+    return Files.size(file);
+  }
+
+  @Override
+  public Blob withOffsetAndLength(long offset, long length) {
+    return new FileBlob(file) {
+      @Override
+      public long length() {
+        return length - offset;
+      }
+
+      @Override
+      public BlobDescriptor writeTo(OutputStream outputStream) throws IOException {
+        try (InputStream fileIn = new BufferedInputStream(Files.newInputStream(file))) {
+          long amountSkipped = fileIn.skip(offset);
+          if (amountSkipped != offset) {
+            throw new RuntimeException(
+                "amount skipped " + amountSkipped + " vs amount to skip " + offset);
+          }
+          InputStream boundedInputStream = new BoundedInputStream(fileIn, length - offset);
+          return Digests.computeDigest(boundedInputStream, outputStream);
+        }
+      }
+    };
   }
 }

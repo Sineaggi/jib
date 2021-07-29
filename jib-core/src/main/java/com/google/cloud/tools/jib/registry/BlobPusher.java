@@ -167,6 +167,36 @@ class BlobPusher {
     }
   }
 
+  /** Writes the BLOB content to the upload location. */
+  private class ChunkedWriter extends Writer {
+
+    private final Consumer<Long> writtenByteCountListener;
+    private final long offset;
+    private final long length;
+
+    @Nullable
+    @Override
+    public BlobHttpContent getContent() {
+      return new BlobHttpContent(
+          blob.withOffsetAndLength(offset, length),
+          MediaType.OCTET_STREAM.toString(),
+          writtenByteCountListener);
+    }
+
+    @Override
+    public String getRange() {
+      return offset + "-" + (length - 1);
+    }
+
+    private ChunkedWriter(
+        URL location, long offset, long length, Consumer<Long> writtenByteCountListener) {
+      super(location, writtenByteCountListener);
+      this.offset = offset;
+      this.length = length;
+      this.writtenByteCountListener = writtenByteCountListener;
+    }
+  }
+
   /** Commits the written BLOB. */
   private class Committer implements RegistryEndpointProvider<Void> {
 
@@ -215,6 +245,36 @@ class BlobPusher {
     }
   }
 
+  /** Commits the written BLOB. */
+  private class ChunkedCommitter extends Committer {
+
+    private final Consumer<Long> writtenByteCountListener;
+    private final long offset;
+    private final long length;
+
+    @Nullable
+    @Override
+    public BlobHttpContent getContent() {
+      return new BlobHttpContent(
+          blob.withOffsetAndLength(offset, length),
+          MediaType.OCTET_STREAM.toString(),
+          writtenByteCountListener);
+    }
+
+    @Override
+    public String getRange() {
+      return offset + "-" + (length - 1);
+    }
+
+    private ChunkedCommitter(
+        URL location, long offset, long length, Consumer<Long> writtenByteCountListener) {
+      super(location);
+      this.offset = offset;
+      this.length = length;
+      this.writtenByteCountListener = writtenByteCountListener;
+    }
+  }
+
   BlobPusher(
       RegistryEndpointRequestProperties registryEndpointRequestProperties,
       DescriptorDigest blobDigest,
@@ -245,6 +305,11 @@ class BlobPusher {
     return new Writer(location, writtenByteCountListener);
   }
 
+  RegistryEndpointProvider<URL> writer(
+      URL location, long offset, long length, Consumer<Long> writtenByteCountListener) {
+    return new ChunkedWriter(location, offset, length, writtenByteCountListener);
+  }
+
   /**
    * Returns a new Committer.
    *
@@ -253,6 +318,11 @@ class BlobPusher {
    */
   RegistryEndpointProvider<Void> committer(URL location) {
     return new Committer(location);
+  }
+
+  RegistryEndpointProvider<Void> committer(
+      URL location, long offset, long length, Consumer<Long> writtenByteCountListener) {
+    return new ChunkedCommitter(location, offset, length, writtenByteCountListener);
   }
 
   private RegistryErrorException buildRegistryErrorException(String reason) {

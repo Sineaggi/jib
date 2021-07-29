@@ -30,4 +30,14 @@ public interface Blob {
    * @throws IOException if writing the BLOB fails
    */
   BlobDescriptor writeTo(OutputStream outputStream) throws IOException;
+
+  /** Returns the content length or less than zero if not known. */
+  default long length() throws IOException {
+    // Returns negative value for unknown length.
+    return -1;
+  }
+
+  default Blob withOffsetAndLength(long offset, long length) {
+    throw new RuntimeException("not supported by default");
+  }
 }

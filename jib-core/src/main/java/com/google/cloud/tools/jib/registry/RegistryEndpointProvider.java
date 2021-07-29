@@ -51,6 +51,11 @@ interface RegistryEndpointProvider<T> {
   /** Returns a list of MIME types to pass as an HTTP {@code Accept} header. */
   List<String> getAccept();
 
+  @Nullable
+  default String getRange() {
+    return null;
+  }
+
   /** Handles the response specific to the registry action. */
   T handleResponse(Response response) throws IOException, RegistryException;
 

@@ -133,6 +133,7 @@ class RegistryEndpointCaller<T> {
             .setHttpTimeout(JibSystemProperties.getHttpTimeout())
             .setAccept(registryEndpointProvider.getAccept())
             .setBody(registryEndpointProvider.getContent())
+            .setRange(registryEndpointProvider.getRange())
             .setAuthorization(authorization);
 
     try (Response response =

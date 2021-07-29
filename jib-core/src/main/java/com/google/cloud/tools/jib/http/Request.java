@@ -66,6 +66,17 @@ public class Request {
     }
 
     /**
+     * Sets the {@code Range} header.
+     *
+     * @param range range range range
+     * @return this
+     */
+    public Builder setRange(@Nullable String range) {
+      headers.setRange(range);
+      return this;
+    }
+
+    /**
      * Sets the {@code User-Agent} header.
      *
      * @param userAgent the user agent

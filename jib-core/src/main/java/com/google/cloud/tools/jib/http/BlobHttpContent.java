@@ -47,9 +47,8 @@ public class BlobHttpContent implements HttpContent {
   }
 
   @Override
-  public long getLength() {
-    // Returns negative value for unknown length.
-    return -1;
+  public long getLength() throws IOException {
+    return blob.length();
   }
 
   @Override

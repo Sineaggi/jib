@@ -553,6 +553,33 @@ public class RegistryClient {
           return true;
         }
 
+        if (blob.length() > 0) {
+          long length = blob.length();
+          int chunkSize = 16_384; // 2^14, arbitrary
+
+          URL location = patchLocation.get();
+          long i;
+          for (i = 0; i + chunkSize < length; i += chunkSize) {
+            timerEventDispatcher2.lap("pushBlob PATCH " + blobDigest);
+
+            // PATCH <Location> with BLOB
+            location =
+                callRegistryEndpoint(
+                    blobPusher.writer(
+                        location, i, Math.min(length, i + chunkSize), writtenByteCountListener));
+          }
+          URL putLocation = location;
+
+          timerEventDispatcher2.lap("pushBlob PUT " + blobDigest);
+
+          // PUT <Location>?digest={blob.digest}
+          callRegistryEndpoint(
+              blobPusher.committer(
+                  putLocation, i, Math.min(length, i + chunkSize), writtenByteCountListener));
+
+          return false;
+        }
+
         timerEventDispatcher2.lap("pushBlob PATCH " + blobDigest);
 
         // PATCH <Location> with BLOB
