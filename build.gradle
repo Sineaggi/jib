@@ -198,12 +198,13 @@ subprojects {
     integrationTest {
       java.srcDir file('src/integration-test/java')
       resources.srcDir file('src/integration-test/resources')
+      compileClasspath += sourceSets.main.output + sourceSets.test.output
+      runtimeClasspath += sourceSets.main.output + sourceSets.test.output
     }
   }
 
   configurations {
     integrationTestImplementation.extendsFrom testImplementation
-    integrationTestImplementation.setCanBeResolved(true)
     integrationTestRuntime.extendsFrom testRuntime
   }
 
