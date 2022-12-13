@@ -559,7 +559,7 @@ public abstract class JibPluginConfiguration extends AbstractMojo {
   public boolean getExpandClasspathDependencies() {
     String property = getProperty(PropertyNames.EXPAND_CLASSPATH_DEPENDENCIES);
     if (property != null) {
-      return Boolean.valueOf(property);
+      return Boolean.parseBoolean(property);
     }
     return container.expandClasspathDependencies;
   }

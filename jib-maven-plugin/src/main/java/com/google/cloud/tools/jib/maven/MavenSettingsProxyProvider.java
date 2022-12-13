@@ -86,7 +86,7 @@ class MavenSettingsProxyProvider {
     String protocol = proxy.getProtocol();
 
     setPropertySafe(protocol + ".proxyHost", proxy.getHost());
-    setPropertySafe(protocol + ".proxyPort", String.valueOf(proxy.getPort()));
+    setPropertySafe(protocol + ".proxyPort", Integer.toString(proxy.getPort()));
     setPropertySafe(protocol + ".proxyUser", proxy.getUsername());
     setPropertySafe(protocol + ".proxyPassword", proxy.getPassword());
     setPropertySafe("http.nonProxyHosts", proxy.getNonProxyHosts());

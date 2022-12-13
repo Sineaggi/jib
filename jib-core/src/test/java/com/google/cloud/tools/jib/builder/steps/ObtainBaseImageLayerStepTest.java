@@ -79,7 +79,7 @@ public class ObtainBaseImageLayerStepTest {
     // necessary to prevent error from classes dealing with progress report
     Answer3<Blob, DescriptorDigest, Consumer<Long>, Consumer<Long>> progressSizeSetter =
         (ignored1, progressSizeConsumer, ignored2) -> {
-          progressSizeConsumer.accept(Long.valueOf(12345));
+          progressSizeConsumer.accept(12345L);
           return null;
         };
     Mockito.when(registryClient.pullBlob(Mockito.any(), Mockito.any(), Mockito.any()))

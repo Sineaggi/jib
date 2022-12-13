@@ -125,7 +125,7 @@ public class ContainerParameters {
   @Input
   public boolean getExpandClasspathDependencies() {
     if (System.getProperty(PropertyNames.EXPAND_CLASSPATH_DEPENDENCIES) != null) {
-      return Boolean.valueOf(System.getProperty(PropertyNames.EXPAND_CLASSPATH_DEPENDENCIES));
+      return Boolean.parseBoolean(System.getProperty(PropertyNames.EXPAND_CLASSPATH_DEPENDENCIES));
     }
     return expandClasspathDependencies;
   }

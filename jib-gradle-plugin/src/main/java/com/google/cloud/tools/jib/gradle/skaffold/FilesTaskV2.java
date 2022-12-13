@@ -127,6 +127,13 @@ public class FilesTaskV2 extends DefaultTask {
     System.out.println(skaffoldFilesOutput.getJsonString());
   }
 
+  @Nullable
+  @SuppressWarnings("deprecation")
+  private Path getSettingsFile(Project project) {
+    File file = project.getGradle().getStartParameter().getSettingsFile();
+    return file != null ? file.toPath() : null;
+  }
+
   /**
    * Adds the locations of a project's build.gradle, settings.gradle, and gradle.properties.
    *
@@ -139,9 +146,9 @@ public class FilesTaskV2 extends DefaultTask {
     skaffoldFilesOutput.addBuild(project.getBuildFile().toPath());
 
     // Add settings.gradle
-    if (project.getGradle().getStartParameter().getSettingsFile() != null) {
-      skaffoldFilesOutput.addBuild(
-          project.getGradle().getStartParameter().getSettingsFile().toPath());
+    Path settingsFile = getSettingsFile(project);
+    if (settingsFile != null) {
+      skaffoldFilesOutput.addBuild(settingsFile);
     } else if (Files.exists(projectPath.resolve(Settings.DEFAULT_SETTINGS_FILE))) {
       skaffoldFilesOutput.addBuild(projectPath.resolve(Settings.DEFAULT_SETTINGS_FILE));
     }

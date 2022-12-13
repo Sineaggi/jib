@@ -379,7 +379,7 @@ public class GradleProjectProperties implements ProjectProperties {
       return null;
     }
 
-    return String.valueOf(value);
+    return value.toString();
   }
 
   @Override
@@ -446,7 +446,7 @@ public class GradleProjectProperties implements ProjectProperties {
     if (javaPluginExtension != null) {
       version = javaPluginExtension.getTargetCompatibility();
     }
-    return Integer.valueOf(version.getMajorVersion());
+    return Integer.parseInt(version.getMajorVersion());
   }
 
   @Override

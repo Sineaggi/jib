@@ -63,7 +63,7 @@ public class SingleProjectIntegrationTest {
 
   private static boolean isJavaRuntimeAtLeast(int version) {
     Iterable<String> split = Splitter.on(".").split(System.getProperty("java.version"));
-    return Integer.valueOf(split.iterator().next()) >= version;
+    return Integer.parseInt(split.iterator().next()) >= version;
   }
 
   private static String getWorkingDirectory(String imageReference)

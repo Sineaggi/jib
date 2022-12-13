@@ -139,7 +139,7 @@ public class WithServerFailoverHttpClientTest {
     try (TestWebServer server =
         new TestWebServer(false, Arrays.asList(proxyResponse, targetServerResponse), 1)) {
       System.setProperty("http.proxyHost", "localhost");
-      System.setProperty("http.proxyPort", String.valueOf(server.getLocalPort()));
+      System.setProperty("http.proxyPort", Integer.toString(server.getLocalPort()));
       System.setProperty("http.proxyUser", "user_sys_prop");
       System.setProperty("http.proxyPassword", "pass_sys_prop");
 

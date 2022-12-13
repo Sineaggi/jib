@@ -97,7 +97,7 @@ public class BuildImageMojoIntegrationTest {
 
   private static boolean isJava11RuntimeOrHigher() {
     Iterable<String> split = Splitter.on(".").split(System.getProperty("java.version"));
-    return Integer.valueOf(split.iterator().next()) >= 11;
+    return Integer.parseInt(split.iterator().next()) >= 11;
   }
 
   private static Verifier build(
