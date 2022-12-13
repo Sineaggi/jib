@@ -166,8 +166,8 @@ subprojects {
   /* CHECKSTYLE */
 
   /* TEST CONFIG */
-  tasks.withType(Test) {
-    reports.html.setDestination file("${reporting.baseDir}/${name}")
+  tasks.withType(Test).configureEach {
+    reports.html.outputLocation.set(file("${reporting.baseDir}/${name}"))
   }
 
   test {
@@ -412,8 +412,8 @@ subprojects {
   /* TEST COVERAGE */
   jacocoTestReport {
     reports {
-      xml.enabled true
-      html.enabled false
+      xml.required.set(true)
+      html.required.set(false)
     }
   }
   /* TEST COVERAGE */
