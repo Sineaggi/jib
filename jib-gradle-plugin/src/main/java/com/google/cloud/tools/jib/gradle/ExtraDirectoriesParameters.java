@@ -27,7 +27,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.gradle.api.Action;
-import org.gradle.api.Project;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.internal.file.FileOperations;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.MapProperty;
@@ -39,19 +41,22 @@ import org.gradle.api.tasks.Internal;
 public class ExtraDirectoriesParameters {
 
   private final ObjectFactory objects;
-  private final Project project;
+  private final ProjectLayout layout;
+  private final FileOperations fileOperations;
 
-  private ListProperty<ExtraDirectoryParameters> paths;
-  private ExtraDirectoryParametersSpec spec;
-  private MapProperty<String, String> permissions;
+  private final ListProperty<ExtraDirectoryParameters> paths;
+  private final ExtraDirectoryParametersSpec spec;
+  private final MapProperty<String, String> permissions;
 
   @Inject
-  public ExtraDirectoriesParameters(ObjectFactory objects, Project project) {
+  public ExtraDirectoriesParameters(
+      ObjectFactory objects, ProjectLayout layout, FileOperations fileOperations) {
     this.objects = objects;
-    this.project = project;
-    paths = objects.listProperty(ExtraDirectoryParameters.class).empty();
-    spec = objects.newInstance(ExtraDirectoryParametersSpec.class, project, paths);
-    permissions = objects.mapProperty(String.class, String.class).empty();
+    this.layout = layout;
+    this.fileOperations = fileOperations;
+    paths = objects.listProperty(ExtraDirectoryParameters.class);
+    spec = objects.newInstance(ExtraDirectoryParametersSpec.class, paths);
+    permissions = objects.mapProperty(String.class, String.class);
   }
 
   public void paths(Action<? super ExtraDirectoryParametersSpec> action) {
@@ -75,15 +80,21 @@ public class ExtraDirectoriesParameters {
     if (property != null) {
       List<String> pathStrings = ConfigurationPropertyValidator.parseListProperty(property);
       return pathStrings.stream()
-          .map(path -> new ExtraDirectoryParameters(objects, project, Paths.get(path), "/"))
+          .map(path -> new ExtraDirectoryParameters(objects, fileOperations, Paths.get(path), "/"))
           .collect(Collectors.toList());
     }
     if (paths.get().isEmpty()) {
       return Collections.singletonList(
           new ExtraDirectoryParameters(
               objects,
-              project,
-              project.getProjectDir().toPath().resolve("src").resolve("main").resolve("jib"),
+              fileOperations,
+              layout
+                  .getProjectDirectory()
+                  .getAsFile()
+                  .toPath()
+                  .resolve("src")
+                  .resolve("main")
+                  .resolve("jib"),
               "/"));
     }
     return paths.get();
@@ -91,7 +102,8 @@ public class ExtraDirectoriesParameters {
 
   /**
    * Sets paths. {@code paths} can be any suitable object describing file paths convertible by
-   * {@link Project#files} (such as {@link File}, {@code List<File>}, or {@code List<String>}).
+   * {@link ConfigurableFileCollection#from(Object...)} (such as {@link File}, {@code List<File>},
+   * or {@code List<String>}).
    *
    * @param paths paths to set.
    */
@@ -115,8 +127,8 @@ public class ExtraDirectoriesParameters {
    */
   @Nonnull
   private List<ExtraDirectoryParameters> convertToExtraDirectoryParametersList(Object obj) {
-    return project.files(obj).getFiles().stream()
-        .map(file -> new ExtraDirectoryParameters(objects, project, file.toPath(), "/"))
+    return objects.fileCollection().from(obj).getFiles().stream()
+        .map(file -> new ExtraDirectoryParameters(objects, fileOperations, file.toPath(), "/"))
         .collect(Collectors.toList());
   }
 
