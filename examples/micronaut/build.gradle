@@ -40,7 +40,7 @@ test.classpath += configurations.developmentOnly
 
 mainClassName = "example.micronaut.Application"
 
-tasks.withType(GroovyCompile) {
+tasks.withType(GroovyCompile).configureEach {
     groovyOptions.forkOptions.jvmArgs.add('-Dgroovy.parameters=true')
 }
 
@@ -48,7 +48,7 @@ shadowJar {
     mergeServiceFiles()
 }
 
-tasks.withType(JavaExec) {
+tasks.withType(JavaExec).configureEach {
     classpath += configurations.developmentOnly
     jvmArgs('-XX:TieredStopAtLevel=1', '-Dcom.sun.management.jmxremote')
 }
