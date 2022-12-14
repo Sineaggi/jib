@@ -193,4 +193,10 @@ public class BuildImageTask extends DefaultTask implements JibTask {
     this.jibExtension = jibExtension;
     return this;
   }
+
+  @Override
+  @Nested
+  public GradleData getGradleData() {
+    throw new RuntimeException();
+  }
 }

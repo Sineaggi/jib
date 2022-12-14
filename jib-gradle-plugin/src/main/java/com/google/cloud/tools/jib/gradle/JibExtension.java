@@ -99,6 +99,8 @@ public class JibExtension {
   private final ListProperty<ExtensionParameters> pluginExtensions;
   private final ExtensionParametersSpec extensionParametersSpec;
 
+  private final ObjectFactory objects;
+
   /**
    * Should be called using {@link org.gradle.api.plugins.ExtensionContainer#create}.
    *
@@ -126,6 +128,8 @@ public class JibExtension {
         objectFactory
             .property(String.class)
             .convention(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
+
+    objects = objectFactory;
   }
 
   public void from(Action<? super BaseImageParameters> action) {
@@ -223,6 +227,17 @@ public class JibExtension {
   public String getContainerizingMode() {
     String property = System.getProperty(PropertyNames.CONTAINERIZING_MODE);
     return property != null ? property : containerizingMode.get();
+  }
+
+  @Input
+  @Optional
+  public Property<String> getContainerizingMode2() {
+    String property = System.getProperty(PropertyNames.CONTAINERIZING_MODE);
+    // return property != null ? property : containerizingMode.get();
+    Property<String> prop = objects.property(String.class);
+    prop.convention(property);
+    prop.set(containerizingMode);
+    return prop;
   }
 
   /**

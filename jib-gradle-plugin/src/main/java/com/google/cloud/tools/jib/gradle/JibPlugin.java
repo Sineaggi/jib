@@ -27,14 +27,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.gradle.api.GradleException;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.Jar;
+import org.gradle.api.tasks.bundling.War;
 import org.gradle.util.GradleVersion;
 
 public class JibPlugin implements Plugin<Project> {
@@ -143,9 +147,25 @@ public class JibPlugin implements Plugin<Project> {
 
     project.afterEvaluate(
         projectAfterEvaluation -> {
+
+          // todo: update this if/when gradle makes version a provider.
+          //  since version is not yet a property we have to set it in an afterEvaluate block
+
+            JavaPluginExtension extension = projectAfterEvaluation.getExtensions()
+                    .findByType(JavaPluginExtension.class);
+            Provider<JavaVersion> targetCompatibility =
+                    projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
+          String name = projectAfterEvaluation.getName();
+          tasks
+              .withType(JibTask.class)
+              .configureEach(
+                  jibTask -> {
+                    jibTask.getGradleData().getTargetCompatibility().set(targetCompatibility);
+                    jibTask.getGradleData().getName().set(name);
+                  });
+
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
-          TaskProvider<Task> bootWarTask =
-              TaskCommon.getBootWarTaskProvider(projectAfterEvaluation);
+          TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(projectAfterEvaluation);
           List<Object> jibDependencies = new ArrayList<>();
           if (warTask != null || bootWarTask != null) {
             // Have all tasks depend on the 'war' and/or 'bootWar' task.

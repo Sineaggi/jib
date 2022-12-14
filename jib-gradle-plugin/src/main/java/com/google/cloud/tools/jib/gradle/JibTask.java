@@ -17,6 +17,7 @@
 package com.google.cloud.tools.jib.gradle;
 
 import org.gradle.api.Task;
+import org.gradle.api.tasks.Nested;
 
 /** A task with a {@link JibExtension}. */
 public interface JibTask extends Task {
@@ -28,4 +29,7 @@ public interface JibTask extends Task {
    * @return this
    */
   Task setJibExtension(JibExtension jibExtension);
+
+  @Nested
+  GradleData getGradleData();
 }

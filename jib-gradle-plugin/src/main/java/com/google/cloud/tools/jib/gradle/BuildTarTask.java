@@ -16,6 +16,8 @@
 
 package com.google.cloud.tools.jib.gradle;
 
+import static org.gradle.api.tasks.SourceSet.MAIN_SOURCE_SET_NAME;
+
 import com.google.cloud.tools.jib.api.CacheDirectoryCreationException;
 import com.google.cloud.tools.jib.api.InvalidImageReferenceException;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
@@ -36,6 +38,7 @@ import com.google.cloud.tools.jib.plugins.common.globalconfig.GlobalConfig;
 import com.google.cloud.tools.jib.plugins.common.globalconfig.InvalidGlobalConfigException;
 import com.google.cloud.tools.jib.plugins.extension.JibPluginExtensionException;
 import com.google.common.base.Preconditions;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -43,13 +46,26 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.NamedDomainObjectProvider;
+import org.gradle.api.artifacts.ResolvedArtifact;
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.options.Option;
 
 /** Builds a container image to a tarball. */
@@ -107,6 +123,146 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     return Preconditions.checkNotNull(jibExtension).getOutputPaths().getTarPath().toString();
   }
 
+  @Nested
+  @Override
+  public GradleData getGradleData() {
+    return gradleData;
+  }
+
+  private final GradleData gradleData = getProject().getObjects().newInstance(GradleData.class);
+
+  // todo: add inputs here. maybe we can add compiled classes/dependency output info here?
+  //  this would let us avoid having to
+
+  // @org.gradle.api.tasks.Optional
+  // @InputFile
+  // public RegularFileProperty getWarPath() {
+  //  return warPath;
+  // }
+  // private final RegularFileProperty warPath = getProject().getObjects().fileProperty();
+  //
+  // @org.gradle.api.tasks.Optional
+  // @InputFile
+  // public RegularFileProperty getBootWarPath() {
+  //  return bootWarPath;
+  // }
+  // private final RegularFileProperty bootWarPath = getProject().getObjects().fileProperty();
+
+  @org.gradle.api.tasks.Optional
+  @InputFile
+  public RegularFileProperty getJar() {
+    return jar;
+  }
+
+  private final RegularFileProperty jar = getProject().getObjects().fileProperty();
+
+  @org.gradle.api.tasks.Optional
+  @InputDirectory
+  public DirectoryProperty getResourcesOutputDirectory() {
+    return resourcesOutputDirectory;
+  }
+
+  private final DirectoryProperty resourcesOutputDirectory =
+      getProject().getObjects().directoryProperty();
+
+  @org.gradle.api.tasks.Optional
+  @InputFiles
+  public ConfigurableFileCollection getClassesOutputDirectories() {
+    return classesOutputDirectories;
+  }
+
+  private final ConfigurableFileCollection classesOutputDirectories =
+      getProject().getObjects().fileCollection();
+  // @Nested
+  // public Property<PackagingData> getPackagingData() {
+  //  return packagingData;
+  // }
+  // private final Property<PackagingData> packagingData =
+  // getProject().getObjects().property(PackagingData.class);
+
+  @Inject
+  public BuildTarTask() {
+    // todo: figure out if this insanity is worth it?
+    // getProject().getPluginManager().withPlugin("org.springframework.boot", (plugin) -> {
+    //  TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(getProject());
+    //  if (bootWarTask != null) { // should we use enabled here?
+    //    Provider<War> warProvider = bootWarTask.map(it -> {
+    //      if (it.isEnabled()) {
+    //        return it;
+    //      } else {
+    //        return null;
+    //      }
+    //    });
+    //    dependsOn(warProvider);
+    //    warPath.set(warProvider.flatMap(AbstractArchiveTask::getArchiveFile));
+    //  }
+    // });
+    // getProject().getPluginManager().withPlugin("war", (plugin) -> {
+    //
+    // });
+
+    // todo: war inputs
+    // todo: maybe used nested for the inputs
+    // todo: abstract out these inputs
+
+    /* JAR */
+    TaskProvider<Jar> jarTaskProvider = getProject().getTasks().named("jar", Jar.class);
+    jar.set(jarTaskProvider.flatMap(Jar::getArchiveFile));
+    dependsOn(jar);
+    /* JAR */
+
+    /* SOURCES AND RESOURCES */
+    SourceSetContainer sourceSetContainer =
+        getProject().getExtensions().getByType(SourceSetContainer.class);
+    NamedDomainObjectProvider<SourceSet> mainSourceSet =
+        sourceSetContainer.named(MAIN_SOURCE_SET_NAME);
+    resourcesOutputDirectory.fileProvider(
+        mainSourceSet.map(
+            it -> {
+              File resourcesDir = it.getOutput().getResourcesDir();
+              if (resourcesDir != null && resourcesDir.exists()) {
+                // if there is no resources dir, it won't get copied.
+                // therefore we need to check if it exists before we make it an input
+                return resourcesDir;
+              } else {
+                return null;
+              }
+            }));
+    dependsOn("processResources");
+
+    FileCollection projectDependencies =
+            getProject().getObjects()
+                    .fileCollection()
+                    .from(
+                            getProject().getConfigurations().getByName(configurationName)
+                                    .getResolvedConfiguration().getResolvedArtifacts().stream()
+                                    .filter(
+                                            artifact ->
+                                                    artifact.getId().getComponentIdentifier()
+                                                            instanceof ProjectComponentIdentifier)
+                                    .map(ResolvedArtifact::getFile)
+                                    .collect(Collectors.toList()));
+
+    // FileCollection classesOutputDirectories =
+    //        mainSourceSet.getOutput().getClassesDirs().filter(File::exists);
+    classesOutputDirectories.setFrom(mainSourceSet.map(it -> it.getOutput().getClassesDirs()));
+    // classesOutputDirectories.from(
+    // mainSourceSet.map(it -> {
+    //  FileCollection resourcesDir = it.getOutput().getClassesDirs();
+    //  if (resourcesDir != null && resourcesDir.exists()) {
+    //    // if there is no resources dir, it won't get copied.
+    //    // therefore we need to check if it exists before we make it an input
+    //    return resourcesDir;
+    //  } else {
+    //    return null;
+    //  }
+    // }));
+
+    /* SOURCES AND RESOURCES */
+
+    System.out.println("building tar task brah");
+  }
+
   /**
    * Task Action, builds an image to tar file.
    *
@@ -128,6 +284,10 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     GradleProjectProperties projectProperties =
         GradleProjectProperties.getForProject(
             getProject(),
+            jar.map(i -> i.getAsFile().toPath()).getOrNull(),
+            resourcesOutputDirectory.map(i -> i.getAsFile().toPath()).getOrNull(),
+            classesOutputDirectories,
+            gradleData,
             getLogger(),
             tempDirectoryProvider,
             jibExtension.getConfigurationName().get());

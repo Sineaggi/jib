@@ -53,7 +53,6 @@ public interface JibGradlePluginExtension<T> extends JibPluginExtension {
    *     jib.pluginExtensions.pluginExtension.configuration} of type type &lt;T&gt;. {@link
    *     Optional#empty()} when {@link #getExtraConfigType()} returns {@link Optional#empty()} or
    *     {@code pluginExtension.configuration} is not specified by the extension user.
-   * @param gradleData {@link GradleData} providing Gradle-specific data and properties
    * @param logger logger for writing log messages
    * @return updated build plan
    * @throws JibPluginExtensionException if an error occurs while running the plugin extension
@@ -62,7 +61,7 @@ public interface JibGradlePluginExtension<T> extends JibPluginExtension {
       ContainerBuildPlan buildPlan,
       Map<String, String> properties,
       Optional<T> extraConfig,
-      GradleData gradleData,
+      //GradleData gradleData,
       ExtensionLogger logger)
       throws JibPluginExtensionException;
 }

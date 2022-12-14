@@ -38,6 +38,7 @@ import org.gradle.api.UnknownTaskException;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.plugins.WarPlugin;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.bundling.War;
 import org.gradle.internal.logging.events.OutputEventListener;
 import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext;
 import org.slf4j.LoggerFactory;
@@ -98,10 +99,10 @@ class TaskCommon {
   }
 
   @Nullable
-  static TaskProvider<Task> getBootWarTaskProvider(Project project) {
+  static TaskProvider<War> getBootWarTaskProvider(Project project) {
     if (project.getPlugins().hasPlugin("org.springframework.boot")) {
       try {
-        return project.getTasks().named("bootWar");
+        return project.getTasks().named("bootWar", War.class);
       } catch (UnknownTaskException ignored) { // fall through
       }
     }

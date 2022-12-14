@@ -81,7 +81,7 @@ public class TaskCommonTest {
     project.getPlugins().apply(WarPlugin.class);
     project.getPlugins().apply(SpringBootPlugin.class);
 
-    TaskProvider<Task> bootWarTask = TaskCommon.getBootWarTaskProvider(project);
+    TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(project);
     assertThat(bootWarTask).isNotNull();
     assertThat(bootWarTask.get()).isInstanceOf(BootWar.class);
   }
