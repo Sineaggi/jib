@@ -61,7 +61,7 @@ public interface JibGradlePluginExtension<T> extends JibPluginExtension {
       ContainerBuildPlan buildPlan,
       Map<String, String> properties,
       Optional<T> extraConfig,
-      //GradleData gradleData,
+      // GradleData gradleData,
       ExtensionLogger logger)
       throws JibPluginExtensionException;
 }

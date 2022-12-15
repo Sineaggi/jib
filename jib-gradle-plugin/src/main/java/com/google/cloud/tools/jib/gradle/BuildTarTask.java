@@ -42,7 +42,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -66,7 +65,9 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.api.tasks.bundling.Jar;
+import org.gradle.api.tasks.bundling.War;
 import org.gradle.api.tasks.options.Option;
 
 /** Builds a container image to a tarball. */
@@ -234,19 +235,22 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     JibExtension jibExtension = this.jibExtension;
     if (jibExtension != null) {
       FileCollection projectDependencies =
-              getProject()
-                      .getObjects()
-                      .fileCollection()
-                      .from(
-                              jibExtension.getConfigurationName().map(configurationName -> getProject().getConfigurations().getByName(configurationName)
-                                      .getResolvedConfiguration().getResolvedArtifacts().stream()
-                                      .filter(
-                                              artifact ->
-                                                      artifact.getId().getComponentIdentifier()
-                                                              instanceof ProjectComponentIdentifier)
-                                      .map(ResolvedArtifact::getFile)
-                                      .collect(Collectors.toList()))
-                      );
+          getProject()
+              .getObjects()
+              .fileCollection()
+              .from(
+                  jibExtension
+                      .getConfigurationName()
+                      .map(
+                          configurationName ->
+                              getProject().getConfigurations().getByName(configurationName)
+                                  .getResolvedConfiguration().getResolvedArtifacts().stream()
+                                  .filter(
+                                      artifact ->
+                                          artifact.getId().getComponentIdentifier()
+                                              instanceof ProjectComponentIdentifier)
+                                  .map(ResolvedArtifact::getFile)
+                                  .collect(Collectors.toList())));
     }
 
     // FileCollection classesOutputDirectories =
@@ -266,15 +270,21 @@ public class BuildTarTask extends DefaultTask implements JibTask {
 
     /* SOURCES AND RESOURCES */
 
-    gradleData.isWarProject().convention(true);
+    // war is ok?
+    gradleData.getIsWarProject().convention(false);
     getProject()
         .getPluginManager()
         .withPlugin(
             "war",
-            (s) -> {
-              gradleData.isWarProject().set(true);
-              // war task
-              getProject().getTasks().named("war").get();
+            (f) -> {
+              gradleData.getIsWarProject().set(true);
+              gradleData
+                  .getWarFilePath()
+                  .set(
+                      getProject()
+                          .getTasks()
+                          .named("war", War.class)
+                          .flatMap(AbstractArchiveTask::getArchiveFile));
             });
 
     System.out.println("building tar task brah");

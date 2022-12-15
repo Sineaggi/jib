@@ -66,7 +66,6 @@ import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
 import org.gradle.api.file.Directory;
@@ -76,8 +75,6 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
-import org.gradle.api.tasks.TaskProvider;
-import org.gradle.api.tasks.bundling.War;
 
 /** Obtains information about a Gradle {@link Project} that uses Jib. */
 public class GradleProjectProperties implements ProjectProperties {
@@ -145,21 +142,13 @@ public class GradleProjectProperties implements ProjectProperties {
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       String configurationName) {
-    throw new RuntimeException("onoz");
-    /*
+    GradleData gradleData = new GradleData(project.getObjects());
     return getForProject(
-        project, null, null, null, logger, tempDirectoryProvider, configurationName);
-     */
+        project, null, null, null, gradleData, logger, tempDirectoryProvider, configurationName);
   }
 
   String getWarFilePath() {
-    TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(project);
-    if (bootWarTask != null && bootWarTask.get().getEnabled()) {
-      return bootWarTask.flatMap(War::getArchiveFile).get().getAsFile().getPath();
-    }
-
-    TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(project);
-    return Verify.verifyNotNull(warTask).get().getOutputs().getFiles().getAsPath();
+    return gradleData.getWarFilePath().map(it -> it.getAsFile().getPath()).getOrNull();
   }
 
   private static boolean isProgressFooterEnabled(Project project) {

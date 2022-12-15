@@ -17,6 +17,7 @@ public class GradleData {
   private final Property<JavaVersion> targetCompatibility;
   private final Property<String> mainClassFromJarPlugin;
   private final ConfigurableFileCollection projectDependencies;
+  private final RegularFileProperty warFilePath;
   private final Property<Boolean> isWarProject;
   private final RegularFileProperty jarPath;
 
@@ -27,6 +28,7 @@ public class GradleData {
     this.targetCompatibility = objects.property(JavaVersion.class);
     this.mainClassFromJarPlugin = objects.property(String.class);
     this.projectDependencies = objects.fileCollection();
+    this.warFilePath = objects.fileProperty();
     this.isWarProject = objects.property(Boolean.class);
     this.jarPath = objects.fileProperty();
   }
@@ -57,8 +59,14 @@ public class GradleData {
     return projectDependencies;
   }
 
-  @InputFiles
-  public Property<Boolean> isWarProject() {
+  @InputFile
+  @Optional
+  public RegularFileProperty getWarFilePath() {
+    return warFilePath;
+  }
+
+  @Input
+  public Property<Boolean> getIsWarProject() {
     return isWarProject;
   }
 
