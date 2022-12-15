@@ -42,6 +42,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -230,18 +231,23 @@ public class BuildTarTask extends DefaultTask implements JibTask {
             }));
     dependsOn("processResources");
 
-    FileCollection projectDependencies =
-            getProject().getObjects()
-                    .fileCollection()
-                    .from(
-                            getProject().getConfigurations().getByName(configurationName)
-                                    .getResolvedConfiguration().getResolvedArtifacts().stream()
-                                    .filter(
-                                            artifact ->
-                                                    artifact.getId().getComponentIdentifier()
-                                                            instanceof ProjectComponentIdentifier)
-                                    .map(ResolvedArtifact::getFile)
-                                    .collect(Collectors.toList()));
+    JibExtension jibExtension = this.jibExtension;
+    if (jibExtension != null) {
+      FileCollection projectDependencies =
+              getProject()
+                      .getObjects()
+                      .fileCollection()
+                      .from(
+                              jibExtension.getConfigurationName().map(configurationName -> getProject().getConfigurations().getByName(configurationName)
+                                      .getResolvedConfiguration().getResolvedArtifacts().stream()
+                                      .filter(
+                                              artifact ->
+                                                      artifact.getId().getComponentIdentifier()
+                                                              instanceof ProjectComponentIdentifier)
+                                      .map(ResolvedArtifact::getFile)
+                                      .collect(Collectors.toList()))
+                      );
+    }
 
     // FileCollection classesOutputDirectories =
     //        mainSourceSet.getOutput().getClassesDirs().filter(File::exists);
@@ -259,6 +265,17 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     // }));
 
     /* SOURCES AND RESOURCES */
+
+    gradleData.isWarProject().convention(true);
+    getProject()
+        .getPluginManager()
+        .withPlugin(
+            "war",
+            (s) -> {
+              gradleData.isWarProject().set(true);
+              // war task
+              getProject().getTasks().named("war").get();
+            });
 
     System.out.println("building tar task brah");
   }
@@ -280,6 +297,10 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     Preconditions.checkNotNull(jibExtension);
     TaskCommon.disableHttpLogging();
     TempDirectoryProvider tempDirectoryProvider = new TempDirectoryProvider();
+
+    // todo: execute on inputs
+    //  that means calling the plugins' entrypoints to make them do their tasks. after all,
+    //  I guess we're the task that owns them?
 
     GradleProjectProperties projectProperties =
         GradleProjectProperties.getForProject(

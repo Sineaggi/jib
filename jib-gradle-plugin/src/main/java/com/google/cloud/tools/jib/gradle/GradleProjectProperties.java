@@ -74,8 +74,6 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.model.ObjectFactory;
-import org.gradle.api.plugins.JavaPluginExtension;
-import org.gradle.api.plugins.WarPlugin;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskProvider;
@@ -184,7 +182,7 @@ public class GradleProjectProperties implements ProjectProperties {
     }
   }
 
-  //private final Project project;
+  private final Project project;
   private final ObjectFactory objects;
   private final ProjectLayout layout;
   private final boolean isOffline;
@@ -478,7 +476,7 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public boolean isWarProject() {
-    return project.getPlugins().hasPlugin(WarPlugin.class);
+    return gradleData.isWarProject().get();
   }
 
   /**
@@ -519,18 +517,12 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public String getVersion() {
-    return gradleData.getTargetCompatibility().get();
+    return gradleData.getVersion().get();
   }
 
   @Override
   public int getMajorJavaVersion() {
-    // also support release/toolchain
-    JavaVersion version = JavaVersion.current();
-    //JavaPluginExtension javaPluginExtension =
-    //    project.getExtensions().findByType(JavaPluginExtension.class);
-    if (javaPluginExtension != null) {
-      version = gradleData.getTargetCompatibility().get();
-    }
+    JavaVersion version = gradleData.getTargetCompatibility().getOrElse(JavaVersion.current());
     return Integer.valueOf(version.getMajorVersion());
   }
 
@@ -607,7 +599,7 @@ public class GradleProjectProperties implements ProjectProperties {
               config.getProperties(),
               Optional.ofNullable(extraConfig),
               () -> {
-                return null;
+                return project;
               },
               new PluginExtensionLogger(this::log));
     } catch (RuntimeException ex) {

@@ -151,15 +151,17 @@ public class JibPlugin implements Plugin<Project> {
           // todo: update this if/when gradle makes version a provider.
           //  since version is not yet a property we have to set it in an afterEvaluate block
 
-            JavaPluginExtension extension = projectAfterEvaluation.getExtensions()
-                    .findByType(JavaPluginExtension.class);
-            Provider<JavaVersion> targetCompatibility =
-                    projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
+          JavaPluginExtension extension =
+              projectAfterEvaluation.getExtensions().findByType(JavaPluginExtension.class);
+          Provider<JavaVersion> targetCompatibility =
+              projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
           String name = projectAfterEvaluation.getName();
+          String version = projectAfterEvaluation.getVersion().toString();
           tasks
               .withType(JibTask.class)
               .configureEach(
                   jibTask -> {
+                    jibTask.getGradleData().getVersion().set(version);
                     jibTask.getGradleData().getTargetCompatibility().set(targetCompatibility);
                     jibTask.getGradleData().getName().set(name);
                   });
