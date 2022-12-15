@@ -196,7 +196,7 @@ public class BuildImageTask extends DefaultTask implements JibTask {
 
   @Override
   @Nested
-  public GradleData getGradleData() {
+  public GradleProjectParameters getGradleProjectParameters() {
     throw new RuntimeException();
   }
 }

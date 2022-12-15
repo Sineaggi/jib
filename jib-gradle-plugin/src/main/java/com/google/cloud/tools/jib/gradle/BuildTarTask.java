@@ -127,11 +127,11 @@ public class BuildTarTask extends DefaultTask implements JibTask {
 
   @Nested
   @Override
-  public GradleData getGradleData() {
-    return gradleData;
+  public GradleProjectParameters getGradleProjectParameters() {
+    return gradleProjectParameters;
   }
 
-  private final GradleData gradleData = getProject().getObjects().newInstance(GradleData.class);
+  private final GradleProjectParameters gradleProjectParameters = getProject().getObjects().newInstance(GradleProjectParameters.class);
 
   // todo: add inputs here. maybe we can add compiled classes/dependency output info here?
   //  this would let us avoid having to
@@ -209,8 +209,9 @@ public class BuildTarTask extends DefaultTask implements JibTask {
 
     /* JAR */
     TaskProvider<Jar> jarTaskProvider = getProject().getTasks().named("jar", Jar.class);
-    jar.set(jarTaskProvider.flatMap(Jar::getArchiveFile));
-    dependsOn(jar);
+    //jar.set(jarTaskProvider.flatMap(Jar::getArchiveFile));
+    gradleProjectParameters.getJarPath().set(jarTaskProvider.flatMap(Jar::getArchiveFile));
+    dependsOn(jarTaskProvider);
     /* JAR */
 
     /* SOURCES AND RESOURCES */
@@ -271,14 +272,14 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     /* SOURCES AND RESOURCES */
 
     // war is ok?
-    gradleData.getIsWarProject().convention(false);
+    gradleProjectParameters.getIsWarProject().convention(false);
     getProject()
         .getPluginManager()
         .withPlugin(
             "war",
             (f) -> {
-              gradleData.getIsWarProject().set(true);
-              gradleData
+              gradleProjectParameters.getIsWarProject().set(true);
+              gradleProjectParameters
                   .getWarFilePath()
                   .set(
                       getProject()
@@ -315,10 +316,9 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     GradleProjectProperties projectProperties =
         GradleProjectProperties.getForProject(
             getProject(),
-            jar.map(i -> i.getAsFile().toPath()).getOrNull(),
-            resourcesOutputDirectory.map(i -> i.getAsFile().toPath()).getOrNull(),
+                resourcesOutputDirectory.map(i -> i.getAsFile().toPath()).getOrNull(),
             classesOutputDirectories,
-            gradleData,
+                gradleProjectParameters,
             getLogger(),
             tempDirectoryProvider,
             jibExtension.getConfigurationName().get());

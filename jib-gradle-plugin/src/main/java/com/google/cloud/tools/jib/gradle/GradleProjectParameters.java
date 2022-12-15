@@ -11,7 +11,7 @@ import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Optional;
 
-public class GradleData {
+public class GradleProjectParameters {
   private final Property<String> name;
   private final Property<String> version;
   private final Property<JavaVersion> targetCompatibility;
@@ -22,7 +22,7 @@ public class GradleData {
   private final RegularFileProperty jarPath;
 
   @Inject
-  public GradleData(ObjectFactory objects) {
+  public GradleProjectParameters(ObjectFactory objects) {
     this.name = objects.property(String.class);
     this.version = objects.property(String.class);
     this.targetCompatibility = objects.property(JavaVersion.class);

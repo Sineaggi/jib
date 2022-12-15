@@ -31,5 +31,5 @@ public interface JibTask extends Task {
   Task setJibExtension(JibExtension jibExtension);
 
   @Nested
-  GradleData getGradleData();
+  GradleProjectParameters getGradleProjectParameters();
 }

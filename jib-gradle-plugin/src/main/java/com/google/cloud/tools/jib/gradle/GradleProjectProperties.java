@@ -100,19 +100,18 @@ public class GradleProjectProperties implements ProjectProperties {
   /**
    * Generate an instance for a gradle project.
    *
-   * @param project a gradle project
-   * @param logger a gradle logging instance to use for logging during the build
+   * @param project               a gradle project
+   * @param logger                a gradle logging instance to use for logging during the build
    * @param tempDirectoryProvider for scratch space during the build
-   * @param configurationName the configuration of which the dependencies should be packed into the
-   *     container
+   * @param configurationName     the configuration of which the dependencies should be packed into the
+   *                              container
    * @return a GradleProjectProperties instance to use in a jib build
    */
   public static GradleProjectProperties getForProject(
       Project project,
-      @Nullable Path jarPath,
       @Nullable Path resources,
       @Nullable FileCollection classes,
-      GradleData gradleData,
+      GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       String configurationName) {
@@ -127,10 +126,9 @@ public class GradleProjectProperties implements ProjectProperties {
         };
     return new GradleProjectProperties(
         project,
-        jarPath,
-        resources,
+            resources,
         classes,
-        gradleData,
+        gradleProjectParameters,
         logger,
         tempDirectoryProvider,
         extensionLoader,
@@ -142,13 +140,13 @@ public class GradleProjectProperties implements ProjectProperties {
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       String configurationName) {
-    GradleData gradleData = new GradleData(project.getObjects());
+    GradleProjectParameters gradleData = new GradleProjectParameters(project.getObjects());
     return getForProject(
-        project, null, null, null, gradleData, logger, tempDirectoryProvider, configurationName);
+        project, null, null, gradleData, logger, tempDirectoryProvider, configurationName);
   }
 
   String getWarFilePath() {
-    return gradleData.getWarFilePath().map(it -> it.getAsFile().getPath()).getOrNull();
+    return gradleProjectParameters.getWarFilePath().map(it -> it.getAsFile().getPath()).getOrNull();
   }
 
   private static boolean isProgressFooterEnabled(Project project) {
@@ -204,25 +202,22 @@ public class GradleProjectProperties implements ProjectProperties {
   }
 
   @Nullable private final Path resourcesOutputDirectory;
-  @Nullable private final Path jarPath;
   @Nullable private final FileCollection classesOutputDirectories;
-  private final GradleData gradleData;
+  private final GradleProjectParameters gradleProjectParameters;
 
   @VisibleForTesting
   GradleProjectProperties(
       Project project,
-      @Nullable Path jarPath,
       @Nullable Path resourcesOutputDirectory,
       @Nullable FileCollection classesOutputDirectories,
-      GradleData gradleData,
+      GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       Supplier<List<JibGradlePluginExtension<?>>> extensionLoader,
       String configurationName) {
-    this.jarPath = jarPath;
     this.resourcesOutputDirectory = resourcesOutputDirectory;
     this.classesOutputDirectories = classesOutputDirectories;
-    this.gradleData = gradleData;
+    this.gradleProjectParameters = gradleProjectParameters;
     this.project = project;
     // todo: pull this up one level
     this.objects = project.getObjects();
@@ -328,7 +323,7 @@ public class GradleProjectProperties implements ProjectProperties {
           // Add a JAR
           // Jar jarTask = (Jar) project.getTasks().findByName("jar");
           // Path jarPath = jarTask.getArchiveFile().get().getAsFile().toPath();
-          Path jarPath = Objects.requireNonNull(this.jarPath);
+          Path jarPath = gradleProjectParameters.getJarPath().get().getAsFile().toPath();
           // jar brah
           System.out.println("make this code activate, also make sure to own this bro");
           System.out.println("Using JAR: " + jarPath);
@@ -422,7 +417,7 @@ public class GradleProjectProperties implements ProjectProperties {
   @Nullable
   @Override
   public String getMainClassFromJarPlugin() {
-    return gradleData.getMainClassFromJarPlugin().getOrNull();
+    return gradleProjectParameters.getMainClassFromJarPlugin().getOrNull();
     // todo: copy this logic into upper levels
     /*
     Jar jarTask = (Jar) project.getTasks().findByName("jar");
@@ -465,7 +460,7 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public boolean isWarProject() {
-    return gradleData.isWarProject().get();
+    return gradleProjectParameters.getIsWarProject().get();
   }
 
   /**
@@ -501,17 +496,17 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public String getName() {
-    return gradleData.getName().get();
+    return gradleProjectParameters.getName().get();
   }
 
   @Override
   public String getVersion() {
-    return gradleData.getVersion().get();
+    return gradleProjectParameters.getVersion().get();
   }
 
   @Override
   public int getMajorJavaVersion() {
-    JavaVersion version = gradleData.getTargetCompatibility().getOrElse(JavaVersion.current());
+    JavaVersion version = gradleProjectParameters.getTargetCompatibility().getOrElse(JavaVersion.current());
     return Integer.valueOf(version.getMajorVersion());
   }
 

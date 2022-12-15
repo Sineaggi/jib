@@ -201,7 +201,7 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
 
   @Override
   @Nested
-  public GradleData getGradleData() {
+  public GradleProjectParameters getGradleProjectParameters() {
     throw new RuntimeException();
   }
 }

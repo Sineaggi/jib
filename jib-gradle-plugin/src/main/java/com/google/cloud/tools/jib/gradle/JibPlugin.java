@@ -161,9 +161,9 @@ public class JibPlugin implements Plugin<Project> {
               .withType(JibTask.class)
               .configureEach(
                   jibTask -> {
-                    jibTask.getGradleData().getVersion().set(version);
-                    jibTask.getGradleData().getTargetCompatibility().set(targetCompatibility);
-                    jibTask.getGradleData().getName().set(name);
+                    jibTask.getGradleProjectParameters().getVersion().set(version);
+                    jibTask.getGradleProjectParameters().getTargetCompatibility().set(targetCompatibility);
+                    jibTask.getGradleProjectParameters().getName().set(name);
                   });
 
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
