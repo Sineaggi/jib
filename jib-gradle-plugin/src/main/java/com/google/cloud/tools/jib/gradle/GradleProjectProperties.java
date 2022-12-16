@@ -100,17 +100,15 @@ public class GradleProjectProperties implements ProjectProperties {
   /**
    * Generate an instance for a gradle project.
    *
-   * @param project               a gradle project
-   * @param logger                a gradle logging instance to use for logging during the build
+   * @param project a gradle project
+   * @param logger a gradle logging instance to use for logging during the build
    * @param tempDirectoryProvider for scratch space during the build
-   * @param configurationName     the configuration of which the dependencies should be packed into the
-   *                              container
+   * @param configurationName the configuration of which the dependencies should be packed into the
+   *     container
    * @return a GradleProjectProperties instance to use in a jib build
    */
   public static GradleProjectProperties getForProject(
       Project project,
-      @Nullable Path resources,
-      @Nullable FileCollection classes,
       GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
@@ -126,8 +124,6 @@ public class GradleProjectProperties implements ProjectProperties {
         };
     return new GradleProjectProperties(
         project,
-            resources,
-        classes,
         gradleProjectParameters,
         logger,
         tempDirectoryProvider,
@@ -141,8 +137,7 @@ public class GradleProjectProperties implements ProjectProperties {
       TempDirectoryProvider tempDirectoryProvider,
       String configurationName) {
     GradleProjectParameters gradleData = new GradleProjectParameters(project.getObjects());
-    return getForProject(
-        project, null, null, gradleData, logger, tempDirectoryProvider, configurationName);
+    return getForProject(project, gradleData, logger, tempDirectoryProvider, configurationName);
   }
 
   String getWarFilePath() {
@@ -201,6 +196,7 @@ public class GradleProjectProperties implements ProjectProperties {
      */
   }
 
+  // todo: validate both these nulls
   @Nullable private final Path resourcesOutputDirectory;
   @Nullable private final FileCollection classesOutputDirectories;
   private final GradleProjectParameters gradleProjectParameters;
@@ -208,15 +204,17 @@ public class GradleProjectProperties implements ProjectProperties {
   @VisibleForTesting
   GradleProjectProperties(
       Project project,
-      @Nullable Path resourcesOutputDirectory,
-      @Nullable FileCollection classesOutputDirectories,
       GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       Supplier<List<JibGradlePluginExtension<?>>> extensionLoader,
       String configurationName) {
-    this.resourcesOutputDirectory = resourcesOutputDirectory;
-    this.classesOutputDirectories = classesOutputDirectories;
+    this.resourcesOutputDirectory =
+        gradleProjectParameters
+            .getResourcesOutputDirectory()
+            .map(i -> i.getAsFile().toPath())
+            .getOrNull();
+    this.classesOutputDirectories = gradleProjectParameters.getClassesOutputDirectories();
     this.gradleProjectParameters = gradleProjectParameters;
     this.project = project;
     // todo: pull this up one level
@@ -506,7 +504,8 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public int getMajorJavaVersion() {
-    JavaVersion version = gradleProjectParameters.getTargetCompatibility().getOrElse(JavaVersion.current());
+    JavaVersion version =
+        gradleProjectParameters.getTargetCompatibility().getOrElse(JavaVersion.current());
     return Integer.valueOf(version.getMajorVersion());
   }
 

@@ -3,6 +3,7 @@ package com.google.cloud.tools.jib.gradle;
 import javax.inject.Inject;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
@@ -20,6 +21,8 @@ public class GradleProjectParameters {
   private final RegularFileProperty warFilePath;
   private final Property<Boolean> isWarProject;
   private final RegularFileProperty jarPath;
+  private final ConfigurableFileCollection classesOutputDirectories;
+  private final DirectoryProperty resourcesOutputDirectory;
 
   @Inject
   public GradleProjectParameters(ObjectFactory objects) {
@@ -31,6 +34,8 @@ public class GradleProjectParameters {
     this.warFilePath = objects.fileProperty();
     this.isWarProject = objects.property(Boolean.class);
     this.jarPath = objects.fileProperty();
+    this.classesOutputDirectories = objects.fileCollection();
+    this.resourcesOutputDirectory = objects.directoryProperty();
   }
 
   @Input
@@ -73,5 +78,17 @@ public class GradleProjectParameters {
   @InputFile
   public RegularFileProperty getJarPath() {
     return jarPath;
+  }
+
+  @InputFiles
+  @Optional
+  public ConfigurableFileCollection getClassesOutputDirectories() {
+    return classesOutputDirectories;
+  }
+
+  @InputFile
+  @Optional
+  public DirectoryProperty getResourcesOutputDirectory() {
+    return resourcesOutputDirectory;
   }
 }

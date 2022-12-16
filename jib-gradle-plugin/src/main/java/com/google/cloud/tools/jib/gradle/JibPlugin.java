@@ -162,7 +162,10 @@ public class JibPlugin implements Plugin<Project> {
               .configureEach(
                   jibTask -> {
                     jibTask.getGradleProjectParameters().getVersion().set(version);
-                    jibTask.getGradleProjectParameters().getTargetCompatibility().set(targetCompatibility);
+                    jibTask
+                        .getGradleProjectParameters()
+                        .getTargetCompatibility()
+                        .set(targetCompatibility);
                     jibTask.getGradleProjectParameters().getName().set(name);
                   });
 
