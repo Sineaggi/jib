@@ -288,8 +288,6 @@ public class BuildTarTask extends DefaultTask implements JibTask {
   public void buildTar()
       throws BuildStepsExecutionException, IOException, CacheDirectoryCreationException,
           MainClassInferenceException, InvalidGlobalConfigException {
-    // Asserts required @Input parameters are not null.
-    Preconditions.checkNotNull(jibExtension);
     TaskCommon.disableHttpLogging();
     TempDirectoryProvider tempDirectoryProvider = new TempDirectoryProvider();
 

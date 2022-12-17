@@ -154,7 +154,6 @@ public class JibPlugin implements Plugin<Project> {
               projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
           gradleProjectParameters.getVersion().set(projectAfterEvaluation.getVersion().toString());
           gradleProjectParameters.getTargetCompatibility().set(targetCompatibility);
-          gradleProjectParameters.getName().set(projectAfterEvaluation.getName());
 
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
           TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(projectAfterEvaluation);

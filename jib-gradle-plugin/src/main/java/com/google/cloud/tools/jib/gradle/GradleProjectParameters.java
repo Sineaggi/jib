@@ -15,7 +15,7 @@ import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Optional;
 
 public class GradleProjectParameters {
-  private final Property<String> name;
+  private final String name;
   private final Property<String> version;
   private final Property<JavaVersion> targetCompatibility;
   private final Property<String> mainClassFromJarPlugin;
@@ -31,7 +31,7 @@ public class GradleProjectParameters {
 
   @Inject
   public GradleProjectParameters(ObjectFactory objects, Project project) {
-    this.name = objects.property(String.class);
+    this.name = project.getName();
     this.version = objects.property(String.class);
     this.targetCompatibility = objects.property(JavaVersion.class);
     this.mainClassFromJarPlugin = objects.property(String.class);
@@ -52,7 +52,7 @@ public class GradleProjectParameters {
    * @return project name
    */
   @Input
-  public Property<String> getName() {
+  public String getName() {
     return name;
   }
 

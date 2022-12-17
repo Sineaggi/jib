@@ -479,7 +479,7 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public String getName() {
-    return gradleProjectParameters.getName().get();
+    return gradleProjectParameters.getName();
   }
 
   @Override
