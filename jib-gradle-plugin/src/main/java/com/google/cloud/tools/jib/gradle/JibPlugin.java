@@ -30,8 +30,10 @@ import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
-import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.Jar;
@@ -91,6 +93,8 @@ public class JibPlugin implements Plugin<Project> {
     checkGradleVersion();
     checkJibVersion();
 
+    project.getPlugins().apply("java");
+
     JibExtension jibExtension =
         project.getExtensions().create(JIB_EXTENSION_NAME, JibExtension.class, project);
 
@@ -141,6 +145,24 @@ public class JibPlugin implements Plugin<Project> {
     // are using Jib 1.3.1 or later.
     tasks.register(SKAFFOLD_CHECK_REQUIRED_VERSION_TASK_NAME, CheckJibVersionTask.class);
 
+    Set<TaskProvider<?>> jibTaskProviders =
+        ImmutableSet.of(buildImageTask, buildDockerTask, buildTarTask, syncMapTask);
+
+    SourceSet mainSourceSet =
+        project
+            .getExtensions()
+            .getByType(SourceSetContainer.class)
+            .getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+
+    jibTaskProviders.forEach(provider -> provider.configure(task -> task.dependsOn(mainSourceSet)));
+
+    Provider<Configuration> fullConfig =
+        jibExtension
+            .getConfigurationName()
+            .map(name -> project.getConfigurations().getByName(name));
+
+    jibTaskProviders.forEach(provider -> provider.configure(task -> task.dependsOn(fullConfig)));
+
     project.afterEvaluate(
         projectAfterEvaluation -> {
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
@@ -182,20 +204,6 @@ public class JibPlugin implements Plugin<Project> {
             }
           }
 
-          SourceSet mainSourceSet =
-              projectAfterEvaluation
-                  .getConvention()
-                  .getPlugin(JavaPluginConvention.class)
-                  .getSourceSets()
-                  .getByName(SourceSet.MAIN_SOURCE_SET_NAME);
-          jibDependencies.add(mainSourceSet.getRuntimeClasspath());
-          jibDependencies.add(
-              projectAfterEvaluation
-                  .getConfigurations()
-                  .getByName(jibExtension.getConfigurationName().get()));
-
-          Set<TaskProvider<?>> jibTaskProviders =
-              ImmutableSet.of(buildImageTask, buildDockerTask, buildTarTask, syncMapTask);
           jibTaskProviders.forEach(
               provider ->
                   provider.configure(task -> jibDependencies.forEach(dep -> task.dependsOn(dep))));
