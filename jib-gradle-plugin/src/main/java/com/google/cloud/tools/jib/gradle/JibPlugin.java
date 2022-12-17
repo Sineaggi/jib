@@ -105,10 +105,6 @@ public class JibPlugin implements Plugin<Project> {
     GradleProjectParameters gradleProjectParameters =
         project.getObjects().newInstance(GradleProjectParameters.class);
 
-    gradleProjectParameters
-        .getVersion()
-        .set(project.provider(() -> project.getVersion().toString()));
-
     TaskContainer tasks = project.getTasks();
     TaskProvider<BuildImageTask> buildImageTask =
         tasks.register(

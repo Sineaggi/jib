@@ -33,6 +33,7 @@ public class GradleProjectParameters {
   public GradleProjectParameters(ObjectFactory objects, Project project) {
     this.name = project.getName();
     this.version = objects.property(String.class);
+    this.version.set(project.provider(() -> project.getVersion().toString()));
     this.targetCompatibility = objects.property(JavaVersion.class);
     this.mainClassFromJarPlugin = objects.property(String.class);
     this.projectDependencies = objects.fileCollection();
