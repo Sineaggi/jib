@@ -142,6 +142,16 @@ public class JibPlugin implements Plugin<Project> {
     // are using Jib 1.3.1 or later.
     tasks.register(SKAFFOLD_CHECK_REQUIRED_VERSION_TASK_NAME, CheckJibVersionTask.class);
 
+    gradleProjectParameters
+        .getTargetCompatibility()
+        .set(
+            project.provider(
+                () ->
+                    project
+                        .getExtensions()
+                        .getByType(JavaPluginExtension.class)
+                        .getTargetCompatibility()));
+
     project.afterEvaluate(
         projectAfterEvaluation -> {
 
@@ -150,9 +160,6 @@ public class JibPlugin implements Plugin<Project> {
 
           JavaPluginExtension extension =
               projectAfterEvaluation.getExtensions().findByType(JavaPluginExtension.class);
-          Provider<JavaVersion> targetCompatibility =
-              projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
-          gradleProjectParameters.getTargetCompatibility().set(targetCompatibility);
 
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
           TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(projectAfterEvaluation);
