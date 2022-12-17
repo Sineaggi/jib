@@ -36,12 +36,11 @@ import com.google.cloud.tools.jib.plugins.common.PluginConfigurationProcessor;
 import com.google.cloud.tools.jib.plugins.common.globalconfig.GlobalConfig;
 import com.google.cloud.tools.jib.plugins.common.globalconfig.InvalidGlobalConfigException;
 import com.google.cloud.tools.jib.plugins.extension.JibPluginExtensionException;
-import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.Future;
-import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.tasks.Nested;
@@ -53,7 +52,12 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
 
   private static final String HELPFUL_SUGGESTIONS_PREFIX = "Build to Docker daemon failed";
 
-  @Nullable private JibExtension jibExtension;
+  private final JibExtension jibExtension;
+
+  @Inject
+  public BuildDockerTask(JibExtension jibExtension) {
+    this.jibExtension = jibExtension;
+  }
 
   /**
    * This will call the property {@code "jib"} so that it is the same name as the extension. This
@@ -62,7 +66,6 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
    * @return the {@link JibExtension}.
    */
   @Nested
-  @Nullable
   public JibExtension getJib() {
     return jibExtension;
   }
@@ -74,7 +77,7 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
    */
   @Option(option = "image", description = "The image reference for the target image")
   public void setTargetImage(String targetImage) {
-    Preconditions.checkNotNull(jibExtension).getTo().setImage(targetImage);
+    jibExtension.getTo().setImage(targetImage);
   }
 
   /**
@@ -90,8 +93,6 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
   public void buildDocker()
       throws IOException, BuildStepsExecutionException, CacheDirectoryCreationException,
           MainClassInferenceException, InvalidGlobalConfigException {
-    Preconditions.checkNotNull(jibExtension);
-
     // Check deprecated parameters
     Path dockerExecutable = jibExtension.getDockerClient().getExecutablePath();
     boolean isDockerInstalled =
@@ -193,15 +194,12 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
     }
   }
 
-  @Override
-  public BuildDockerTask setJibExtension(JibExtension jibExtension) {
-    this.jibExtension = jibExtension;
-    return this;
-  }
+  private final GradleProjectParameters gradleProjectParameters =
+      getProject().getObjects().newInstance(GradleProjectParameters.class);
 
   @Override
   @Nested
   public GradleProjectParameters getGradleProjectParameters() {
-    throw new RuntimeException();
+    return gradleProjectParameters;
   }
 }

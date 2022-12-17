@@ -54,7 +54,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
@@ -66,12 +65,11 @@ import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Project;
-import org.gradle.api.artifacts.ResolvedArtifact;
-import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.configuration.ConsoleOutput;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
@@ -100,7 +98,6 @@ public class GradleProjectProperties implements ProjectProperties {
   /**
    * Generate an instance for a gradle project.
    *
-   * @param project a gradle project
    * @param logger a gradle logging instance to use for logging during the build
    * @param tempDirectoryProvider for scratch space during the build
    * @param configurationName the configuration of which the dependencies should be packed into the
@@ -108,7 +105,8 @@ public class GradleProjectProperties implements ProjectProperties {
    * @return a GradleProjectProperties instance to use in a jib build
    */
   public static GradleProjectProperties getForProject(
-      Project project,
+      ObjectFactory objects,
+      ProjectLayout layout,
       GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
@@ -123,7 +121,8 @@ public class GradleProjectProperties implements ProjectProperties {
           return extensions;
         };
     return new GradleProjectProperties(
-        project,
+        objects,
+        layout,
         gradleProjectParameters,
         logger,
         tempDirectoryProvider,
@@ -136,20 +135,26 @@ public class GradleProjectProperties implements ProjectProperties {
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       String configurationName) {
-    GradleProjectParameters gradleData = new GradleProjectParameters(project.getObjects());
-    return getForProject(project, gradleData, logger, tempDirectoryProvider, configurationName);
+    GradleProjectParameters gradleData = new GradleProjectParameters(project.getObjects(), project);
+    return getForProject(
+        project.getObjects(),
+        project.getLayout(),
+        gradleData,
+        logger,
+        tempDirectoryProvider,
+        configurationName);
   }
 
   String getWarFilePath() {
     return gradleProjectParameters.getWarFilePath().map(it -> it.getAsFile().getPath()).getOrNull();
   }
 
-  private static boolean isProgressFooterEnabled(Project project) {
+  private static boolean isProgressFooterEnabled(ConsoleOutput consoleOutput) {
     if ("plain".equals(System.getProperty(PropertyNames.CONSOLE))) {
       return false;
     }
 
-    switch (project.getGradle().getStartParameter().getConsoleOutput()) {
+    switch (consoleOutput) {
       case Plain:
         return false;
 
@@ -164,7 +169,7 @@ public class GradleProjectProperties implements ProjectProperties {
     }
   }
 
-  private final Project project;
+  // private final Project project;
   private final ObjectFactory objects;
   private final ProjectLayout layout;
   private final boolean isOffline;
@@ -196,36 +201,28 @@ public class GradleProjectProperties implements ProjectProperties {
      */
   }
 
-  // todo: validate both these nulls
-  @Nullable private final Path resourcesOutputDirectory;
-  @Nullable private final FileCollection classesOutputDirectories;
   private final GradleProjectParameters gradleProjectParameters;
 
   @VisibleForTesting
   GradleProjectProperties(
-      Project project,
+      ObjectFactory objects,
+      ProjectLayout layout,
       GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
       Supplier<List<JibGradlePluginExtension<?>>> extensionLoader,
       String configurationName) {
-    this.resourcesOutputDirectory =
-        gradleProjectParameters
-            .getResourcesOutputDirectory()
-            .map(i -> i.getAsFile().toPath())
-            .getOrNull();
-    this.classesOutputDirectories = gradleProjectParameters.getClassesOutputDirectories();
     this.gradleProjectParameters = gradleProjectParameters;
-    this.project = project;
+    // this.project = project;
     // todo: pull this up one level
-    this.objects = project.getObjects();
-    this.layout = project.getLayout();
-    this.isOffline = project.getGradle().getStartParameter().isOffline();
+    this.objects = objects;
+    this.layout = layout;
+    this.isOffline = gradleProjectParameters.isOffline();
     this.tempDirectoryProvider = tempDirectoryProvider;
     this.extensionLoader = extensionLoader;
     this.configurationName = configurationName;
     ConsoleLoggerBuilder consoleLoggerBuilder =
-        (isProgressFooterEnabled(project)
+        (isProgressFooterEnabled(gradleProjectParameters.getConsoleOutput())
                 ? ConsoleLoggerBuilder.rich(singleThreadedExecutor, false)
                 : ConsoleLoggerBuilder.plain(singleThreadedExecutor).progress(logger::lifecycle))
             .lifecycle(logger::lifecycle);
@@ -248,18 +245,7 @@ public class GradleProjectProperties implements ProjectProperties {
   public JibContainerBuilder createJibContainerBuilder(
       JavaContainerBuilder javaContainerBuilder, ContainerizingMode containerizingMode) {
     try {
-      FileCollection projectDependencies =
-          objects
-              .fileCollection()
-              .from(
-                  project.getConfigurations().getByName(configurationName)
-                      .getResolvedConfiguration().getResolvedArtifacts().stream()
-                      .filter(
-                          artifact ->
-                              artifact.getId().getComponentIdentifier()
-                                  instanceof ProjectComponentIdentifier)
-                      .map(ResolvedArtifact::getFile)
-                      .collect(Collectors.toList()));
+      FileCollection projectDependencies = gradleProjectParameters.getProjectDependencies();
 
       if (isWarProject()) {
         String warFilePath = getWarFilePath();
@@ -272,12 +258,15 @@ public class GradleProjectProperties implements ProjectProperties {
             projectDependencies.getFiles().stream().map(File::getName).collect(Collectors.toSet()));
       }
 
-      // SourceSet mainSourceSet = getMainSourceSet();
       FileCollection classesOutputDirectories =
-          Objects.requireNonNull(this.classesOutputDirectories).filter(File::exists);
-      FileCollection allFiles =
-          project.getConfigurations().getByName(configurationName).filter(File::exists);
+          gradleProjectParameters.getClassesOutputDirectories().filter(File::exists);
+      FileCollection allFiles = gradleProjectParameters.getAllFiles().filter(File::exists);
 
+      Path resourcesOutputDirectory =
+          gradleProjectParameters
+              .getResourcesOutputDirectory()
+              .map(i -> i.getAsFile().toPath())
+              .getOrNull();
       FileCollection nonProjectDependencies =
           allFiles
               .minus(classesOutputDirectories)
@@ -319,12 +308,7 @@ public class GradleProjectProperties implements ProjectProperties {
 
         case PACKAGED:
           // Add a JAR
-          // Jar jarTask = (Jar) project.getTasks().findByName("jar");
-          // Path jarPath = jarTask.getArchiveFile().get().getAsFile().toPath();
           Path jarPath = gradleProjectParameters.getJarPath().get().getAsFile().toPath();
-          // jar brah
-          System.out.println("make this code activate, also make sure to own this bro");
-          System.out.println("Using JAR: " + jarPath);
 
           log(LogEvent.debug("Using JAR: " + jarPath));
           javaContainerBuilder.addToClasspath(jarPath);
@@ -345,7 +329,7 @@ public class GradleProjectProperties implements ProjectProperties {
   public List<Path> getClassFiles() throws IOException {
     // TODO: Consolidate with createJibContainerBuilder
     FileCollection classesOutputDirectories =
-        Objects.requireNonNull(this.classesOutputDirectories).filter(File::exists);
+        gradleProjectParameters.getClassesOutputDirectories().filter(File::exists);
     List<Path> classFiles = new ArrayList<>();
     for (File classesOutputDirectory : classesOutputDirectories) {
       classFiles.addAll(new DirectoryWalker(classesOutputDirectory.toPath()).walk());
@@ -356,16 +340,17 @@ public class GradleProjectProperties implements ProjectProperties {
   @Override
   public List<Path> getDependencies() {
     List<Path> dependencies = new ArrayList<>();
-    FileCollection runtimeClasspath = project.getConfigurations().getByName(configurationName);
     // To be on the safe side with the order, calling "forEach" first (no filtering operations).
-    runtimeClasspath.forEach(
-        file -> {
-          if (file.exists()
-              && file.isFile()
-              && file.getName().toLowerCase(Locale.US).endsWith(".jar")) {
-            dependencies.add(file.toPath());
-          }
-        });
+    gradleProjectParameters
+        .getAllFiles()
+        .forEach(
+            file -> {
+              if (file.exists()
+                  && file.isFile()
+                  && file.getName().toLowerCase(Locale.US).endsWith(".jar")) {
+                dependencies.add(file.toPath());
+              }
+            });
     return dependencies;
   }
 
@@ -511,7 +496,6 @@ public class GradleProjectProperties implements ProjectProperties {
 
   @Override
   public boolean isOffline() {
-    // return project.getGradle().getStartParameter().isOffline();
     return isOffline;
   }
 
@@ -582,7 +566,7 @@ public class GradleProjectProperties implements ProjectProperties {
               config.getProperties(),
               Optional.ofNullable(extraConfig),
               () -> {
-                return project;
+                return null;
               },
               new PluginExtensionLogger(this::log));
     } catch (RuntimeException ex) {

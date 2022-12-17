@@ -37,7 +37,6 @@ import com.google.cloud.tools.jib.plugins.common.PluginConfigurationProcessor;
 import com.google.cloud.tools.jib.plugins.common.globalconfig.GlobalConfig;
 import com.google.cloud.tools.jib.plugins.common.globalconfig.InvalidGlobalConfigException;
 import com.google.cloud.tools.jib.plugins.extension.JibPluginExtensionException;
-import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,7 +44,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
@@ -53,6 +51,8 @@ import org.gradle.api.NamedDomainObjectProvider;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputFile;
@@ -70,7 +70,7 @@ public class BuildTarTask extends DefaultTask implements JibTask {
 
   private static final String HELPFUL_SUGGESTIONS_PREFIX = "Building image tarball failed";
 
-  @Nullable private JibExtension jibExtension;
+  private final JibExtension jibExtension;
 
   /**
    * This will call the property {@code "jib"} so that it is the same name as the extension. This
@@ -79,7 +79,6 @@ public class BuildTarTask extends DefaultTask implements JibTask {
    * @return the {@link JibExtension}.
    */
   @Nested
-  @Nullable
   public JibExtension getJib() {
     return jibExtension;
   }
@@ -91,7 +90,7 @@ public class BuildTarTask extends DefaultTask implements JibTask {
    */
   @Option(option = "image", description = "The image reference for the target image")
   public void setTargetImage(String targetImage) {
-    Preconditions.checkNotNull(jibExtension).getTo().setImage(targetImage);
+    jibExtension.getTo().setImage(targetImage);
   }
 
   /**
@@ -103,7 +102,7 @@ public class BuildTarTask extends DefaultTask implements JibTask {
   @InputFiles
   public FileCollection getInputFiles() {
     List<Path> extraDirectories =
-        Preconditions.checkNotNull(jibExtension).getExtraDirectories().getPaths().stream()
+        jibExtension.getExtraDirectories().getPaths().stream()
             .map(ExtraDirectoryParameters::getFrom)
             .collect(Collectors.toList());
     return GradleProjectProperties.getInputFiles(
@@ -117,7 +116,7 @@ public class BuildTarTask extends DefaultTask implements JibTask {
    */
   @OutputFile
   public String getOutputFile() {
-    return Preconditions.checkNotNull(jibExtension).getOutputPaths().getTarPath().toString();
+    return jibExtension.getOutputPaths().getTarPath().toString();
   }
 
   @Nested
@@ -126,8 +125,7 @@ public class BuildTarTask extends DefaultTask implements JibTask {
     return gradleProjectParameters;
   }
 
-  private final GradleProjectParameters gradleProjectParameters =
-      getProject().getObjects().newInstance(GradleProjectParameters.class);
+  private final GradleProjectParameters gradleProjectParameters;
 
   // todo: add inputs here. maybe we can add compiled classes/dependency output info here?
   //  this would let us avoid having to
@@ -153,8 +151,19 @@ public class BuildTarTask extends DefaultTask implements JibTask {
   // private final Property<PackagingData> packagingData =
   // getProject().getObjects().property(PackagingData.class);
 
+  private final ObjectFactory objects;
+  private final ProjectLayout layout;
+
   @Inject
-  public BuildTarTask() {
+  public BuildTarTask(
+      JibExtension jibExtension,
+      GradleProjectParameters gradleProjectParameters,
+      ObjectFactory objects,
+      ProjectLayout layout) {
+    this.jibExtension = jibExtension;
+    this.gradleProjectParameters = gradleProjectParameters;
+    this.objects = objects;
+    this.layout = layout;
     // todo: figure out if this insanity is worth it?
     // getProject().getPluginManager().withPlugin("org.springframework.boot", (plugin) -> {
     //  TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(getProject());
@@ -206,7 +215,6 @@ public class BuildTarTask extends DefaultTask implements JibTask {
                 }));
     dependsOn("processResources");
 
-    JibExtension jibExtension = this.jibExtension;
     if (jibExtension != null) {
       FileCollection projectDependencies =
           getProject()
@@ -291,7 +299,8 @@ public class BuildTarTask extends DefaultTask implements JibTask {
 
     GradleProjectProperties projectProperties =
         GradleProjectProperties.getForProject(
-            getProject(),
+            objects,
+            layout,
             gradleProjectParameters,
             getLogger(),
             tempDirectoryProvider,
@@ -373,11 +382,5 @@ public class BuildTarTask extends DefaultTask implements JibTask {
       TaskCommon.finishUpdateChecker(projectProperties, updateCheckFuture);
       projectProperties.waitForLoggingThread();
     }
-  }
-
-  @Override
-  public BuildTarTask setJibExtension(JibExtension jibExtension) {
-    this.jibExtension = jibExtension;
-    return this;
   }
 }

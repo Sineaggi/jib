@@ -2,9 +2,11 @@ package com.google.cloud.tools.jib.gradle;
 
 import javax.inject.Inject;
 import org.gradle.api.JavaVersion;
+import org.gradle.api.Project;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.logging.configuration.ConsoleOutput;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
@@ -23,9 +25,12 @@ public class GradleProjectParameters {
   private final RegularFileProperty jarPath;
   private final ConfigurableFileCollection classesOutputDirectories;
   private final DirectoryProperty resourcesOutputDirectory;
+  private final ConfigurableFileCollection allFiles;
+  private final boolean offline;
+  private final ConsoleOutput consoleOutput;
 
   @Inject
-  public GradleProjectParameters(ObjectFactory objects) {
+  public GradleProjectParameters(ObjectFactory objects, Project project) {
     this.name = objects.property(String.class);
     this.version = objects.property(String.class);
     this.targetCompatibility = objects.property(JavaVersion.class);
@@ -36,13 +41,26 @@ public class GradleProjectParameters {
     this.jarPath = objects.fileProperty();
     this.classesOutputDirectories = objects.fileCollection();
     this.resourcesOutputDirectory = objects.directoryProperty();
+    this.allFiles = objects.fileCollection();
+    this.offline = project.getGradle().getStartParameter().isOffline();
+    this.consoleOutput = project.getGradle().getStartParameter().getConsoleOutput();
   }
 
+  /**
+   * Project name
+   *
+   * @return project name
+   */
   @Input
   public Property<String> getName() {
     return name;
   }
 
+  /**
+   * Project version
+   *
+   * @return project version
+   */
   @Input
   public Property<String> getVersion() {
     return version;
@@ -90,5 +108,35 @@ public class GradleProjectParameters {
   @Optional
   public DirectoryProperty getResourcesOutputDirectory() {
     return resourcesOutputDirectory;
+  }
+
+  /**
+   * This represents all files from the configuration
+   *
+   * @return the project files
+   */
+  @InputFiles
+  public ConfigurableFileCollection getAllFiles() {
+    return allFiles;
+  }
+
+  /**
+   * Equal to project.getGradle().getStartParameter().isOffline()
+   *
+   * @return is offline
+   */
+  @Input
+  public boolean isOffline() {
+    return offline;
+  }
+
+  /**
+   * Equal to project.getGradle().getStartParameter().getConsoleOutput()
+   *
+   * @return console output
+   */
+  @Input
+  public ConsoleOutput getConsoleOutput() {
+    return consoleOutput;
   }
 }

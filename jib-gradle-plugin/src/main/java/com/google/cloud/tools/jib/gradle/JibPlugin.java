@@ -26,11 +26,15 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.gradle.api.GradleException;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ResolvedArtifact;
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
@@ -98,6 +102,9 @@ public class JibPlugin implements Plugin<Project> {
     JibExtension jibExtension =
         project.getExtensions().create(JIB_EXTENSION_NAME, JibExtension.class, project);
 
+    GradleProjectParameters gradleProjectParameters =
+        project.getObjects().newInstance(GradleProjectParameters.class);
+
     TaskContainer tasks = project.getTasks();
     TaskProvider<BuildImageTask> buildImageTask =
         tasks.register(
@@ -106,7 +113,6 @@ public class JibPlugin implements Plugin<Project> {
             task -> {
               task.setGroup("Jib");
               task.setDescription("Builds a container image to a registry.");
-              task.setJibExtension(jibExtension);
             });
 
     TaskProvider<BuildDockerTask> buildDockerTask =
@@ -116,30 +122,21 @@ public class JibPlugin implements Plugin<Project> {
             task -> {
               task.setGroup("Jib");
               task.setDescription("Builds a container image to a Docker daemon.");
-              task.setJibExtension(jibExtension);
             });
 
     TaskProvider<BuildTarTask> buildTarTask =
         tasks.register(
-            BUILD_TAR_TASK_NAME,
-            BuildTarTask.class,
-            task -> {
-              task.setGroup("Jib");
-              task.setDescription("Builds a container image to a tarball.");
-              task.setJibExtension(jibExtension);
-            });
+            BUILD_TAR_TASK_NAME, BuildTarTask.class, jibExtension, gradleProjectParameters);
+    buildTarTask.configure(
+        task -> {
+          task.setGroup("Jib");
+          task.setDescription("Builds a container image to a tarball.");
+        });
 
-    tasks
-        .register(SKAFFOLD_FILES_TASK_V2_NAME, FilesTaskV2.class)
-        .configure(task -> task.setJibExtension(jibExtension));
-    tasks
-        .register(SKAFFOLD_INIT_TASK_NAME, InitTask.class)
-        .configure(task -> task.setJibExtension(jibExtension));
+    tasks.register(SKAFFOLD_FILES_TASK_V2_NAME, FilesTaskV2.class, jibExtension);
+    tasks.register(SKAFFOLD_INIT_TASK_NAME, InitTask.class, jibExtension);
     TaskProvider<SyncMapTask> syncMapTask =
-        tasks.register(
-            SKAFFOLD_SYNC_MAP_TASK_NAME,
-            SyncMapTask.class,
-            task -> task.setJibExtension(jibExtension));
+        tasks.register(SKAFFOLD_SYNC_MAP_TASK_NAME, SyncMapTask.class, jibExtension);
 
     // A check to catch older versions of Jib.  This can be removed once we are certain people
     // are using Jib 1.3.1 or later.
@@ -155,19 +152,9 @@ public class JibPlugin implements Plugin<Project> {
               projectAfterEvaluation.getExtensions().findByType(JavaPluginExtension.class);
           Provider<JavaVersion> targetCompatibility =
               projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
-          String name = projectAfterEvaluation.getName();
-          String version = projectAfterEvaluation.getVersion().toString();
-          tasks
-              .withType(JibTask.class)
-              .configureEach(
-                  jibTask -> {
-                    jibTask.getGradleProjectParameters().getVersion().set(version);
-                    jibTask
-                        .getGradleProjectParameters()
-                        .getTargetCompatibility()
-                        .set(targetCompatibility);
-                    jibTask.getGradleProjectParameters().getName().set(name);
-                  });
+          gradleProjectParameters.getVersion().set(projectAfterEvaluation.getVersion().toString());
+          gradleProjectParameters.getTargetCompatibility().set(targetCompatibility);
+          gradleProjectParameters.getName().set(projectAfterEvaluation.getName());
 
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
           TaskProvider<War> bootWarTask = TaskCommon.getBootWarTaskProvider(projectAfterEvaluation);
@@ -213,10 +200,23 @@ public class JibPlugin implements Plugin<Project> {
                   .getByType(SourceSetContainer.class)
                   .getByName(SourceSet.MAIN_SOURCE_SET_NAME);
           jibDependencies.add(mainSourceSet.getRuntimeClasspath());
-          jibDependencies.add(
+
+          Configuration configuration =
               projectAfterEvaluation
                   .getConfigurations()
-                  .getByName(jibExtension.getConfigurationName().get()));
+                  .getByName(jibExtension.getConfigurationName().get());
+          jibDependencies.add(configuration);
+          gradleProjectParameters.getAllFiles().from(configuration);
+          gradleProjectParameters
+              .getProjectDependencies()
+              .from(
+                  configuration.getResolvedConfiguration().getResolvedArtifacts().stream()
+                      .filter(
+                          artifact ->
+                              artifact.getId().getComponentIdentifier()
+                                  instanceof ProjectComponentIdentifier)
+                      .map(ResolvedArtifact::getFile)
+                      .collect(Collectors.toList()));
 
           Set<TaskProvider<?>> jibTaskProviders =
               ImmutableSet.of(buildImageTask, buildDockerTask, buildTarTask, syncMapTask);
