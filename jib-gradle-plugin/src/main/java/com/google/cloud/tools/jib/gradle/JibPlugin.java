@@ -105,6 +105,10 @@ public class JibPlugin implements Plugin<Project> {
     GradleProjectParameters gradleProjectParameters =
         project.getObjects().newInstance(GradleProjectParameters.class);
 
+    gradleProjectParameters
+        .getVersion()
+        .set(project.provider(() -> project.getVersion().toString()));
+
     TaskContainer tasks = project.getTasks();
     TaskProvider<BuildImageTask> buildImageTask =
         tasks.register(
@@ -152,7 +156,6 @@ public class JibPlugin implements Plugin<Project> {
               projectAfterEvaluation.getExtensions().findByType(JavaPluginExtension.class);
           Provider<JavaVersion> targetCompatibility =
               projectAfterEvaluation.provider(() -> extension.getTargetCompatibility());
-          gradleProjectParameters.getVersion().set(projectAfterEvaluation.getVersion().toString());
           gradleProjectParameters.getTargetCompatibility().set(targetCompatibility);
 
           TaskProvider<Task> warTask = TaskCommon.getWarTaskProvider(projectAfterEvaluation);
