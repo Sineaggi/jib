@@ -299,6 +299,7 @@ public class BuildTarTask extends DefaultTask implements JibTask {
         GradleProjectProperties.getForProject(
             objects,
             layout,
+            this::getProject,
             gradleProjectParameters,
             getLogger(),
             tempDirectoryProvider,

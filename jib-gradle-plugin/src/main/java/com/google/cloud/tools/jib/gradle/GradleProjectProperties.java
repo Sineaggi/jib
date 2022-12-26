@@ -28,6 +28,7 @@ import com.google.cloud.tools.jib.event.events.TimerEvent;
 import com.google.cloud.tools.jib.event.progress.ProgressEventHandler;
 import com.google.cloud.tools.jib.filesystem.DirectoryWalker;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
+import com.google.cloud.tools.jib.gradle.extension.GradleData;
 import com.google.cloud.tools.jib.gradle.extension.JibGradlePluginExtension;
 import com.google.cloud.tools.jib.plugins.common.ContainerizingMode;
 import com.google.cloud.tools.jib.plugins.common.JavaContainerBuilderHelper;
@@ -107,6 +108,7 @@ public class GradleProjectProperties implements ProjectProperties {
   public static GradleProjectProperties getForProject(
       ObjectFactory objects,
       ProjectLayout layout,
+      GradleData gradleData,
       GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
@@ -123,6 +125,7 @@ public class GradleProjectProperties implements ProjectProperties {
     return new GradleProjectProperties(
         objects,
         layout,
+        gradleData,
         gradleProjectParameters,
         logger,
         tempDirectoryProvider,
@@ -139,6 +142,7 @@ public class GradleProjectProperties implements ProjectProperties {
     return getForProject(
         project.getObjects(),
         project.getLayout(),
+        () -> project,
         gradleData,
         logger,
         tempDirectoryProvider,
@@ -172,6 +176,7 @@ public class GradleProjectProperties implements ProjectProperties {
   // private final Project project;
   private final ObjectFactory objects;
   private final ProjectLayout layout;
+  private final GradleData gradleData;
   private final boolean isOffline;
   private final SingleThreadedExecutor singleThreadedExecutor = new SingleThreadedExecutor();
   private final ConsoleLogger consoleLogger;
@@ -207,6 +212,7 @@ public class GradleProjectProperties implements ProjectProperties {
   GradleProjectProperties(
       ObjectFactory objects,
       ProjectLayout layout,
+      GradleData gradleData,
       GradleProjectParameters gradleProjectParameters,
       Logger logger,
       TempDirectoryProvider tempDirectoryProvider,
@@ -217,6 +223,7 @@ public class GradleProjectProperties implements ProjectProperties {
     // todo: pull this up one level
     this.objects = objects;
     this.layout = layout;
+    this.gradleData = gradleData;
     this.isOffline = gradleProjectParameters.isOffline();
     this.tempDirectoryProvider = tempDirectoryProvider;
     this.extensionLoader = extensionLoader;
@@ -565,9 +572,7 @@ public class GradleProjectProperties implements ProjectProperties {
               buildPlan,
               config.getProperties(),
               Optional.ofNullable(extraConfig),
-              () -> {
-                return null;
-              },
+              gradleData,
               new PluginExtensionLogger(this::log));
     } catch (RuntimeException ex) {
       throw new JibPluginExtensionException(

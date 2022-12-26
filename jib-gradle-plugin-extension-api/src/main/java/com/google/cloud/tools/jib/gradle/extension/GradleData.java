@@ -21,5 +21,10 @@ import org.gradle.api.Project;
 /** Holds Gradle-specific data and properties. */
 public interface GradleData {
 
+  /**
+   * <strong>NOTE:</strong> DO NOT CALL THIS IF YOU WANT YOUR PLUGIN TO SUPPORT GRADLE'S CONFIGURATION CACHE
+   *
+   * @return Project
+   */
   Project getProject();
 }
