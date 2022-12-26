@@ -106,21 +106,21 @@ public class JibPlugin implements Plugin<Project> {
     TaskContainer tasks = project.getTasks();
     TaskProvider<BuildImageTask> buildImageTask =
         tasks.register(
-            BUILD_IMAGE_TASK_NAME,
-            BuildImageTask.class,
-            task -> {
-              task.setGroup("Jib");
-              task.setDescription("Builds a container image to a registry.");
-            });
+            BUILD_IMAGE_TASK_NAME, BuildImageTask.class, jibExtension, gradleProjectParameters);
+    buildImageTask.configure(
+        task -> {
+          task.setGroup("Jib");
+          task.setDescription("Builds a container image to a registry.");
+        });
 
     TaskProvider<BuildDockerTask> buildDockerTask =
         tasks.register(
-            BUILD_DOCKER_TASK_NAME,
-            BuildDockerTask.class,
-            task -> {
-              task.setGroup("Jib");
-              task.setDescription("Builds a container image to a Docker daemon.");
-            });
+            BUILD_DOCKER_TASK_NAME, BuildDockerTask.class, jibExtension, gradleProjectParameters);
+    buildDockerTask.configure(
+        task -> {
+          task.setGroup("Jib");
+          task.setDescription("Builds a container image to a Docker daemon.");
+        });
 
     TaskProvider<BuildTarTask> buildTarTask =
         tasks.register(
@@ -134,7 +134,8 @@ public class JibPlugin implements Plugin<Project> {
     tasks.register(SKAFFOLD_FILES_TASK_V2_NAME, FilesTaskV2.class, jibExtension);
     tasks.register(SKAFFOLD_INIT_TASK_NAME, InitTask.class, jibExtension);
     TaskProvider<SyncMapTask> syncMapTask =
-        tasks.register(SKAFFOLD_SYNC_MAP_TASK_NAME, SyncMapTask.class, jibExtension);
+        tasks.register(
+            SKAFFOLD_SYNC_MAP_TASK_NAME, SyncMapTask.class, jibExtension, gradleProjectParameters);
 
     // A check to catch older versions of Jib.  This can be removed once we are certain people
     // are using Jib 1.3.1 or later.

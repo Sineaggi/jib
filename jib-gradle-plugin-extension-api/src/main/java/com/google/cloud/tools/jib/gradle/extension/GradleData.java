@@ -22,9 +22,12 @@ import org.gradle.api.Project;
 public interface GradleData {
 
   /**
-   * <strong>NOTE:</strong> DO NOT CALL THIS IF YOU WANT YOUR PLUGIN TO SUPPORT GRADLE'S CONFIGURATION CACHE
+   * Returns the {@link Project} which this task belongs to.
    *
-   * @return Project
+   * <p>Calling this method from a task action is not supported when configuration caching is
+   * enabled.
+   *
+   * @return The project this task belongs to. Never returns null.
    */
   Project getProject();
 }

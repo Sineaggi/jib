@@ -17,6 +17,7 @@
 package com.google.cloud.tools.jib.gradle.skaffold;
 
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
+import com.google.cloud.tools.jib.gradle.GradleProjectParameters;
 import com.google.cloud.tools.jib.gradle.GradleProjectProperties;
 import com.google.cloud.tools.jib.gradle.GradleRawConfiguration;
 import com.google.cloud.tools.jib.gradle.JibExtension;
@@ -26,6 +27,9 @@ import com.google.cloud.tools.jib.plugins.common.PluginConfigurationProcessor;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.TaskAction;
 
 /**
@@ -37,10 +41,22 @@ import org.gradle.api.tasks.TaskAction;
 public class SyncMapTask extends DefaultTask {
 
   private final JibExtension jibExtension;
+  private final GradleProjectParameters gradleProjectParameters;
+
+  private final ObjectFactory objects;
+  private final ProjectLayout layout;
 
   @Inject
-  public SyncMapTask(JibExtension jibExtension) {
+  public SyncMapTask(
+      JibExtension jibExtension,
+      GradleProjectParameters gradleProjectParameters,
+      ObjectFactory objects,
+      ProjectLayout layout) {
     this.jibExtension = jibExtension;
+    this.gradleProjectParameters = gradleProjectParameters;
+
+    this.objects = objects;
+    this.layout = layout;
   }
 
   /** Task Action, lists files and container targets. */
@@ -49,7 +65,10 @@ public class SyncMapTask extends DefaultTask {
     try (TempDirectoryProvider tempDirectoryProvider = new TempDirectoryProvider()) {
       GradleProjectProperties projectProperties =
           GradleProjectProperties.getForProject(
-              getProject(),
+              objects,
+              layout,
+              this::getProject,
+              gradleProjectParameters,
               getLogger(),
               tempDirectoryProvider,
               jibExtension.getConfigurationName().get());
@@ -92,5 +111,10 @@ public class SyncMapTask extends DefaultTask {
         throw new GradleException("Failed to generate a Jib file map for sync with Skaffold", ex);
       }
     }
+  }
+
+  @Nested
+  public GradleProjectParameters getGradleProjectParameters() {
+    return gradleProjectParameters;
   }
 }

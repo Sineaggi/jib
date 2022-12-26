@@ -43,6 +43,8 @@ import java.util.concurrent.Future;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
@@ -53,10 +55,21 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
   private static final String HELPFUL_SUGGESTIONS_PREFIX = "Build to Docker daemon failed";
 
   private final JibExtension jibExtension;
+  private final GradleProjectParameters gradleProjectParameters;
+  private final ObjectFactory objects;
+  private final ProjectLayout layout;
 
   @Inject
-  public BuildDockerTask(JibExtension jibExtension) {
+  public BuildDockerTask(
+      JibExtension jibExtension,
+      GradleProjectParameters gradleProjectParameters,
+      ObjectFactory objects,
+      ProjectLayout layout) {
     this.jibExtension = jibExtension;
+    this.gradleProjectParameters = gradleProjectParameters;
+
+    this.objects = objects;
+    this.layout = layout;
   }
 
   /**
@@ -109,7 +122,10 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
 
     GradleProjectProperties projectProperties =
         GradleProjectProperties.getForProject(
-            getProject(),
+            objects,
+            layout,
+            this::getProject,
+            gradleProjectParameters,
             getLogger(),
             tempDirectoryProvider,
             jibExtension.getConfigurationName().get());
@@ -193,9 +209,6 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
       projectProperties.waitForLoggingThread();
     }
   }
-
-  private final GradleProjectParameters gradleProjectParameters =
-      getProject().getObjects().newInstance(GradleProjectParameters.class);
 
   @Override
   @Nested

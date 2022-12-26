@@ -42,6 +42,8 @@ import java.util.concurrent.Future;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
@@ -52,10 +54,22 @@ public class BuildImageTask extends DefaultTask implements JibTask {
   private static final String HELPFUL_SUGGESTIONS_PREFIX = "Build image failed";
 
   private final JibExtension jibExtension;
+  private final GradleProjectParameters gradleProjectParameters;
+
+  private final ObjectFactory objects;
+  private final ProjectLayout layout;
 
   @Inject
-  public BuildImageTask(JibExtension jibExtension) {
+  public BuildImageTask(
+      JibExtension jibExtension,
+      GradleProjectParameters gradleProjectParameters,
+      ObjectFactory objects,
+      ProjectLayout layout) {
     this.jibExtension = jibExtension;
+    this.gradleProjectParameters = gradleProjectParameters;
+
+    this.objects = objects;
+    this.layout = layout;
   }
 
   /**
@@ -97,7 +111,10 @@ public class BuildImageTask extends DefaultTask implements JibTask {
 
     GradleProjectProperties projectProperties =
         GradleProjectProperties.getForProject(
-            getProject(),
+            objects,
+            layout,
+            this::getProject,
+            gradleProjectParameters,
             getLogger(),
             tempDirectoryProvider,
             jibExtension.getConfigurationName().get());
@@ -192,6 +209,6 @@ public class BuildImageTask extends DefaultTask implements JibTask {
   @Override
   @Nested
   public GradleProjectParameters getGradleProjectParameters() {
-    throw new RuntimeException();
+    return gradleProjectParameters;
   }
 }
