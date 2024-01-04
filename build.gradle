@@ -73,11 +73,11 @@ subprojects {
   apply plugin: 'net.ltgt.errorprone'
   apply plugin: 'jacoco'
 
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
-  compileJava.options.encoding = 'UTF-8'
-  compileJava.options.compilerArgs += [ '-Xlint:deprecation' ]
-  compileTestJava.options.compilerArgs += [ '-Xlint:deprecation' ]
+  tasks.withType(JavaCompile).configureEach {
+    options.release.set(8)
+    options.encoding = 'UTF-8'
+    options.compilerArgs += [ '-Xlint:deprecation' ]
+  }
 
   // Use this to ensure we correctly override transitive dependencies
   // TODO: There might be a plugin that does this
