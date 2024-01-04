@@ -1,4 +1,5 @@
 plugins {
+  id 'java-library'
   id 'net.researchgate.release'
   id 'maven-publish'
   id 'eclipse'

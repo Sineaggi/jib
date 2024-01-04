@@ -61,10 +61,6 @@ project.ext.dependencyStrings = [
 import net.ltgt.gradle.errorprone.CheckSeverity
 
 subprojects {
-  if (project.name in ['jib-core', 'jib-gradle-plugin', 'jib-gradle-plugin-extension-api', 'jib-maven-plugin-extension-api']) {
-    apply plugin: 'java-library'
-  }
-
   group 'com.google.cloud.tools'
 
   repositories {
