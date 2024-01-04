@@ -60,13 +60,11 @@ project.ext.dependencyStrings = [
 
 import net.ltgt.gradle.errorprone.CheckSeverity
 
-// `java-library` must be applied before `java`.
-// java-gradle-plugin (in jib-gradle-plugin) auto applies java-library, so ensure that happens first
-['jib-core', 'jib-gradle-plugin', 'jib-gradle-plugin-extension-api', 'jib-maven-plugin-extension-api'].each { projectName ->
-  project(projectName).apply plugin: 'java-library'
-}
-
 subprojects {
+  if (project.name in ['jib-core', 'jib-gradle-plugin', 'jib-gradle-plugin-extension-api', 'jib-maven-plugin-extension-api']) {
+    apply plugin: 'java-library'
+  }
+
   group 'com.google.cloud.tools'
 
   repositories {
@@ -78,16 +76,6 @@ subprojects {
   apply plugin: 'com.github.sherter.google-java-format'
   apply plugin: 'net.ltgt.errorprone'
   apply plugin: 'jacoco'
-
-  // Guava update breaks unit tests. Workaround mentioned in https://github.com/google/guava/issues/6612#issuecomment-1614992368.
-  sourceSets.all {
-    configurations.getByName(runtimeClasspathConfigurationName) {
-      attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
-    }
-    configurations.getByName(compileClasspathConfigurationName) {
-      attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
-    }
-  }
 
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
