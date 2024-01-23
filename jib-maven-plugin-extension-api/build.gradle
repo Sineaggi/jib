@@ -45,7 +45,7 @@ publishing {
 release {
   tagTemplate = 'v$version-maven-extension'
   git {
-    requireBranch.set(/^maven-extension-release-v\d+.*$/)  //regex
+    requireBranch = /^maven-extension-release-v\d+.*$/  //regex
   }
 }
 /* RELEASE */

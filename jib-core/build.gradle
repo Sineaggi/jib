@@ -72,7 +72,7 @@ publishing {
 release {
   tagTemplate = 'v$version-core'
   git {
-    requireBranch.set(/^core-release-v\d+.*$/)  //regex
+    requireBranch = /^core-release-v\d+.*$/  //regex
   }
 }
 /* RELEASE */
